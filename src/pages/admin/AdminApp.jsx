@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Route, Routes } from 'react-router-dom'
-import { ExternalLink, FolderTree, LayoutDashboard, LogOut, Package, Receipt, Settings, Truck } from 'lucide-react'
+import { ExternalLink, FolderTree, LayoutDashboard, LogOut, MessageSquareHeart, Package, Receipt, Settings, Truck } from 'lucide-react'
 import { useAuth } from '../../lib/AuthContext.jsx'
 import { useStore } from '../../lib/StoreContext.jsx'
 import { useSeo } from '../../lib/useSeo.js'
@@ -12,6 +12,7 @@ import AdminDashboard from './AdminDashboard.jsx'
 import { AdminOrders, AdminOrderDetail } from './AdminOrders.jsx'
 import { AdminProducts, AdminProductEdit } from './AdminProducts.jsx'
 import AdminCategories from './AdminCategories.jsx'
+import AdminCommunity from './AdminCommunity.jsx'
 import AdminShipping from './AdminShipping.jsx'
 import AdminSettings from './AdminSettings.jsx'
 
@@ -19,6 +20,7 @@ const NAV = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/orders', label: 'Orders', icon: Receipt },
   { to: '/admin/products', label: 'Products', icon: Package },
+  { to: '/admin/community', label: 'Reviews', icon: MessageSquareHeart },
   { to: '/admin/categories', label: 'Categories', icon: FolderTree },
   { to: '/admin/shipping', label: 'Shipping', icon: Truck },
   { to: '/admin/settings', label: 'Settings', icon: Settings },
@@ -175,6 +177,7 @@ export default function AdminApp() {
           <Route path="orders/:id" element={<AdminOrderDetail />} />
           <Route path="products" element={<AdminProducts />} />
           <Route path="products/:id" element={<AdminProductEdit />} />
+          <Route path="community" element={<AdminCommunity />} />
           <Route path="categories" element={<AdminCategories />} />
           <Route path="shipping" element={<AdminShipping />} />
           <Route path="settings" element={<AdminSettings />} />

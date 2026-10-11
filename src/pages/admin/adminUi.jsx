@@ -79,7 +79,11 @@ export function Modal({ title, onClose, children, wide = false }) {
 }
 
 const MAX_UPLOAD_MB = 10
-export function ImageUpload({ folder, label = 'Upload image', onUploaded, multiple = false, className = '' }) {
+const MAX_VIDEO_MB = 50
+const IMAGE_TYPES = 'image/png,image/jpeg,image/webp,image/gif,image/avif'
+export const VIDEO_TYPES = 'video/mp4,video/webm'
+
+export function ImageUpload({ folder, label = 'Upload image', onUploaded, multiple = false, className = '', accept = IMAGE_TYPES }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const input = useRef(null)
@@ -92,8 +96,10 @@ export function ImageUpload({ folder, label = 'Upload image', onUploaded, multip
     setError(null)
     try {
       for (const file of files) {
-        if (!file.type.startsWith('image/')) throw new Error(`${file.name} is not an image.`)
-        if (file.size > MAX_UPLOAD_MB * 1024 * 1024) throw new Error(`${file.name} is larger than ${MAX_UPLOAD_MB} MB.`)
+        const isVideo = file.type.startsWith('video/')
+        if (!accept.split(',').includes(file.type)) throw new Error(`${file.name}: please use ${accept.includes('video') ? 'an image or an MP4 / WebM video' : 'a PNG, JPG or WebP image'}.`)
+        const max = isVideo ? MAX_VIDEO_MB : MAX_UPLOAD_MB
+        if (file.size > max * 1024 * 1024) throw new Error(`${file.name} is larger than ${max} MB.`)
         const result = await api.uploadImage(folder, file)
         await onUploaded(result, file)
       }
@@ -109,7 +115,7 @@ export function ImageUpload({ folder, label = 'Upload image', onUploaded, multip
       <input
         ref={input}
         type="file"
-        accept="image/png,image/jpeg,image/webp,image/gif,image/avif"
+        accept={accept}
         multiple={multiple}
         className="sr-only"
         onChange={onChange}

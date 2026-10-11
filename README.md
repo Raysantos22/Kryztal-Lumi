@@ -49,7 +49,7 @@ React SPA (Vite 8, React 19, React Router 7, Tailwind 4)
   ├─ Public: Home (Crystal Blush launch page) · Shop · Product · Bag (drawer + page) · Checkout
   │          · Order placed · Track order · About · FAQ · Shipping & Returns · Contact · 404
   ├─ /admin (role-gated): Dashboard · Orders (list, filters, detail) · Products (+ variants, photos)
-  │          · Categories · Shipping · Settings
+  │          · Reviews (community slideshow) · Categories · Shipping · Settings
   └─ src/lib/api/  ← one API surface, two implementations
         supabaseApi.js  (production)      demoApi.js (PGlite, same SQL)
                 │
@@ -57,7 +57,7 @@ Supabase
   ├─ Postgres  supabase/migrations/*.sql
   │    tables: store_settings (public) · store_private (admin only) · admin_users · categories
   │            · products · product_variants · product_images · shipping_zones · orders
-  │            · order_items · order_events · notifications_log
+  │            · order_items · order_events · notifications_log · community_posts
   │    RLS: anyone reads the active catalogue, zones and public settings. Orders are invisible
   │         except through get_order(order_no, phone). Admins (admin_users) manage everything.
   │    functions: create_order · get_order · submit_gcash_reference · expire_unpaid_orders
@@ -218,6 +218,8 @@ twice. The admin's *Resend email* button forces a resend.
 - the illustrated blush pan
 - crops of the packaging mockup
 - the 1200×630 Open Graph image
+- stand-in "photography" for the home page: a flat lay, a podium scene and two close-ups. Replace them
+  with real photos when you have them (same file names in `public/images/`).
 
 Product photos the owner uploads go to Supabase Storage.
 
@@ -225,10 +227,10 @@ Product photos the owner uploads go to Supabase Storage.
 
 | Command | What it checks |
 |---|---|
-| `npm run test:db` | 46 Postgres tests on PGlite with the real migrations. They cover pricing from the DB, totals, zones and free shipping, minimum order, stock reservation and oversell refusal, multi-line rollback, variants, the anti-spam cap, GCash expiry and late-payment reinstatement, the status machine, restock-once, admin list and stats, RLS, column grants, storage policies, and a check that no function is executable by `anon` unless intended. |
+| `npm run test:db` | 47 Postgres tests on PGlite with the real migrations. They cover pricing from the DB, totals, zones and free shipping, minimum order, stock reservation and oversell refusal, multi-line rollback, variants, the anti-spam cap, GCash expiry and late-payment reinstatement, the status machine, restock-once, admin list and stats, RLS, column grants, storage policies, and a check that no function is executable by `anon` unless intended. |
 | `npm run test:functions` | Deno tests for the email templates (escaping, content), the provider HTTP calls, phone formatting, channel selection, and create-order payload validation. |
 | `npm run check:functions` | Type-checks the three edge functions. |
-| `npm run test:e2e` | 11 Playwright flows × desktop and Pixel 7, against demo mode. They cover every public page, COD and GCash checkout, the bag drawer, validation, the order cap, low stock and sold out, the full admin order flow with tracking, mark-paid, cancel and restock, product, variant and photo CRUD, shipping zones, free shipping, settings, categories, and horizontal scroll. |
+| `npm run test:e2e` | 12 Playwright flows × desktop and Pixel 7, against demo mode. They cover every public page, COD and GCash checkout, the bag drawer, validation, the order cap, low stock and sold out, the full admin order flow with tracking, mark-paid, cancel and restock, product, variant and photo CRUD, shipping zones, free shipping, settings, categories, and horizontal scroll. |
 | `npm run lint` | oxlint |
 | `npm run screenshots` | Screenshots every page at 390, 820, 1180 and 1440 px into `screenshots/` (needs `npx vite --port 5174` running in demo mode). |
 

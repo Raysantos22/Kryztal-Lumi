@@ -15,7 +15,7 @@ const migrationFiles = import.meta.glob('../../../supabase/migrations/*.sql', {
   eager: true,
 })
 
-const DB_NAME = 'idb://kryztal-lumi-demo-v1'
+const DB_NAME = 'idb://kryztal-lumi-demo-v2'
 const DEMO_ADMIN_ID = 'dddddddd-0000-4000-8000-000000000001'
 const SESSION_KEY = 'kl-demo-session'
 
@@ -155,6 +155,9 @@ export const getProduct = (slug) =>
 export const listShippingZones = ({ includeInactive = false } = {}) =>
   q(`select * from public.shipping_zones ${includeInactive ? '' : 'where is_active'} order by sort_order, name`)
 
+export const listCommunity = ({ includeUnpublished = false } = {}) =>
+  q(`select * from public.community_posts ${includeUnpublished ? '' : 'where is_published'} order by sort_order, created_at desc`)
+
 // Same call the create-order edge function makes with the service role,
 // followed by the owner alert (logged as "skipped" in demo mode).
 export async function createOrder(payload) {
@@ -290,6 +293,9 @@ export const deleteCategory = (id) => remove('categories', id)
 export const saveShippingZone = (zone) => save('shipping_zones', zone)
 export const deleteShippingZone = (id) => remove('shipping_zones', id)
 
+export const saveCommunityPost = (post) => save('community_posts', post)
+export const deleteCommunityPost = (post) => remove('community_posts', post.id)
+
 export const updateSettings = (fields) => save('store_settings', { id: 1, ...fields })
 
 export async function getPrivateSettings() {
@@ -302,7 +308,7 @@ export const updatePrivateSettings = (fields) => save('store_private', { id: 1, 
 export function uploadImage(_folder, file) {
   return new Promise((resolve, reject) => {
     if (file.size > 3 * 1024 * 1024) {
-      reject(new ApiError('Demo mode stores images in your browser — please use an image under 3 MB.'))
+      reject(new ApiError('Demo mode stores files in your browser — please use a file under 3 MB.'))
       return
     }
     const reader = new FileReader()

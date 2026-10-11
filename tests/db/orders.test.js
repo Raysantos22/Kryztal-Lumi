@@ -602,6 +602,23 @@ describe('row level security & privileges', () => {
     })
   })
 
+  it('community posts: public sees only published ones; only admins write; links must be https', async () => {
+    await asAdmin(async () => {
+      await q("insert into community_posts (kind, author, quote, is_published) values ('review', 'Ana', 'Love it', true), ('review', 'Draft', 'Hidden', false)")
+      await expect(q("insert into community_posts (kind, author) values ('look', 'No media')")).rejects.toThrow(/check constraint/)
+      await expect(q("insert into community_posts (kind, author, quote, link_url) values ('review', 'X', 'Y', 'javascript:alert(1)')")).rejects.toThrow(/check constraint/)
+    })
+    await as(db, 'anon', null, async () => {
+      expect((await q('select author from community_posts')).map((r) => r.author)).toEqual(['Ana'])
+      await expect(q("insert into community_posts (author, quote) values ('Spam', 'x')")).rejects.toThrow(/permission denied/)
+    })
+    await as(db, 'authenticated', OTHER_USER, async () => {
+      await expect(q("insert into community_posts (author, quote) values ('Spam', 'x')")).rejects.toThrow(/row-level security/)
+      await q("update community_posts set quote = 'hacked'")
+    })
+    expect((await q("select count(*)::int as n from community_posts where quote = 'hacked'"))[0].n).toBe(0)
+  })
+
   it('every public function has an explicit grant (no accidental PUBLIC execute)', async () => {
     const rows = await q(`
       select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace

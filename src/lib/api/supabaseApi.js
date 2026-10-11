@@ -78,6 +78,12 @@ export const listShippingZones = ({ includeInactive = false } = {}) => {
   return run(q.order('sort_order').order('name'))
 }
 
+export const listCommunity = ({ includeUnpublished = false } = {}) => {
+  let q = supabase.from('community_posts').select('*')
+  if (!includeUnpublished) q = q.eq('is_published', true)
+  return run(q.order('sort_order').order('created_at', { ascending: false }))
+}
+
 // Goes through the create-order edge function, which re-reads prices and
 // takes stock inside one database transaction.
 export const createOrder = (payload) => invoke('create-order', payload).then((d) => d.order)
@@ -176,6 +182,12 @@ export const saveCategory = (category) => save('categories', category)
 export const deleteCategory = (id) => remove('categories', id)
 export const saveShippingZone = (zone) => save('shipping_zones', zone)
 export const deleteShippingZone = (id) => remove('shipping_zones', id)
+
+export const saveCommunityPost = (post) => save('community_posts', post)
+export async function deleteCommunityPost(post) {
+  await remove('community_posts', post.id)
+  for (const p of [post.image_path, post.video_path]) if (p) await removeImage(p).catch(() => {})
+}
 
 export const updateSettings = (fields) => save('store_settings', { id: 1, ...fields })
 export const getPrivateSettings = () => run(supabase.from('store_private').select('*').eq('id', 1).maybeSingle())

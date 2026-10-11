@@ -54,8 +54,12 @@ What I still need from you. ✏️ = you can change it yourself in **/admin** on
 - [ ] ✏️ **Facebook / Instagram / TikTok links** and your **Messenger username** (this turns on the
       floating "Message us" button).
 - [ ] ✏️ **Announcement bar text.** Currently "Nationwide shipping · Cash on delivery or GCash".
-- [ ] **Reviews.** The home page has a "Glow notes — your review could be here" placeholder. Send me real
-      customer reviews or screenshots once you have them. I didn't add fake ones.
+- [ ] ✏️ **Reviews & looks.** The home page "Glow notes" slideshow shows "your look here" cards until you
+      add real ones in **Admin → Reviews** (written reviews, or photos / short videos up to 50 MB with the
+      creator's @handle and a link to the post). Only post content you have permission to use. I didn't add
+      fake ones.
+- [ ] **Real product photography** for the home page banners and close-ups (currently generated from the
+      packaging). Send them and I'll swap them in.
 
 ## Domain & launch
 - [ ] 🛠 **Domain name** (e.g. kryztallumi.com / kryztallumi.ph). Vercel → Domains.

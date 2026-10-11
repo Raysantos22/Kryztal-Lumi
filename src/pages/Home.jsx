@@ -3,13 +3,13 @@ import { useStore } from '../lib/StoreContext.jsx'
 import { useOrderNow } from '../lib/useOrderNow.js'
 import { useSeo } from '../lib/useSeo.js'
 import { availableStock, priceRange } from '../lib/catalog.js'
-import { formatMoney, socialLinks } from '../lib/format.js'
+import { formatMoney } from '../lib/format.js'
 import { Eyebrow } from '../components/ui.jsx'
 import { Sparkle } from '../components/icons.jsx'
-import { SocialLinks } from '../components/Layout.jsx'
 import ProductCard from '../components/ProductCard.jsx'
 import { DesktopHero, MobileCollection, MobileHero } from '../components/HomeHero.jsx'
 import FeatureBanners from '../components/FeatureBanners.jsx'
+import { BigTiles, CommunitySlideshow } from '../components/Community.jsx'
 import Shop from './Shop.jsx'
 
 function OrderNowButton({ product, className = 'btn-solid', children = 'Order now' }) {
@@ -39,7 +39,6 @@ export default function Home() {
   const { min } = featured ? priceRange(featured) : { min: 0 }
   const faq = (settings?.faq || []).slice(0, 4)
   const others = products.filter((p) => p.id !== featured?.id)
-  const hasSocials = socialLinks(settings).length > 0
 
   const isLaunch = featured?.slug === LAUNCH_SLUG
   useSeo({
@@ -57,6 +56,8 @@ export default function Home() {
       <MobileHero featured={featured} settings={settings} />
       <MobileCollection products={products} categories={categories} settings={settings} />
       <FeatureBanners product={featured} />
+      <BigTiles product={featured} />
+      <CommunitySlideshow product={featured} settings={settings} />
 
       {/* ---------------------------------------------------- How it works */}
       <section id="how-it-works" className="scroll-mt-24 py-16 sm:py-24">
@@ -140,33 +141,6 @@ export default function Home() {
           </div>
         </section>
       )}
-
-      {/* ---------------------------------------------------------- Reviews */}
-      <section className="py-16 sm:py-24" aria-labelledby="reviews-title">
-        <div className="container-page text-center">
-          <Eyebrow className="justify-center">Reviews</Eyebrow>
-          <h2 id="reviews-title" className="mt-3 font-display text-4xl text-noir sm:text-5xl">
-            Glow notes
-          </h2>
-          <div className="mx-auto mt-10 grid max-w-4xl gap-4 sm:grid-cols-3" data-testid="reviews-placeholder">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="flex h-40 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-rose-200 bg-blush-50/60 p-6">
-                <div className="flex gap-1 text-rose-300" aria-hidden="true">
-                  {[0, 1, 2, 3, 4].map((s) => (
-                    <Sparkle key={s} className="h-3.5 w-3.5" />
-                  ))}
-                </div>
-                <p className="text-sm text-muted">Your review could be here</p>
-              </div>
-            ))}
-          </div>
-          <p className="mx-auto mt-8 max-w-lg text-muted">
-            Crystal Blush has just launched — our first customers&apos; reviews will appear here soon.
-            {hasSocials ? ' Tag us when you try it:' : ''}
-          </p>
-          {hasSocials && <SocialLinks settings={settings} className="mt-4 justify-center text-noir" />}
-        </div>
-      </section>
 
       {/* -------------------------------------------------------------- FAQ */}
       {faq.length > 0 && (
