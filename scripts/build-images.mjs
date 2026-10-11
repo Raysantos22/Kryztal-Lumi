@@ -167,7 +167,7 @@ async function mockups() {
 }
 
 // -------------------------------------------------------------- OG image ---
-async function ogImage(logoPng, boxImg) {
+async function ogImage(logoPng) {
   const W = 1200
   const H = 630
   const bg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
@@ -190,8 +190,8 @@ async function ogImage(logoPng, boxImg) {
 
 const logoPng = await cleanLogo()
 await favicons()
-const boxImg = await productBox(logoPng)
+await productBox(logoPng)
 await pan()
 await mockups()
-await ogImage(logoPng, boxImg)
+await ogImage(logoPng)
 console.log('✔ images built')

@@ -75,7 +75,7 @@ insert into public.products (
   'Crystal Blush',
   'Tone-adapt colour-changing blush',
   'A deep crystal in the compact, your own rosy flush on the cheek. Crystal Blush develops on contact with your skin and adapts to your undertone, so every wearer gets a shade that looks naturally theirs. Silky, buildable and long-wearing, in a slim black compact finished in rose-gold foil.',
-  E'How to use\n1. Tap a fingertip or soft brush lightly on the pan.\n2. Press onto the apples of your cheeks and blend upwards.\n3. Wait 1–2 minutes while the colour develops, then build up if you want more.\n\nTip: a little goes a long way. Start sheer.',
+  E'1. Tap a fingertip or soft brush lightly on the pan.\n2. Press onto the apples of your cheeks and blend upwards.\n3. Wait 1–2 minutes while the colour develops, then build up if you want more.\n\nTip: a little goes a long way. Start sheer.',
   'Caprylic/Capric Triglyceride, Octyldodecanol, Tridecyl Trimellitate, Diisostearyl Malate, Hydrogenated Polyisobutene, C12-15 Alkyl Benzoate, Microcrystalline Wax, Polyisobutene, Synthetic Wax, Paraffin, Black Iron Oxide (CI 77499), Phenoxyethanol, Isostearic Acid, D&C Red No.22 (CI 45380), Ethylhexylglycerin, Tocopherol.',
   '[
     {"label": "Net wt", "value": "1.8 g / 0.063 oz"},
