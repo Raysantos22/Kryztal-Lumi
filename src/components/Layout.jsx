@@ -16,7 +16,15 @@ const NAV_MAIN = [
   { to: '/faq', label: 'FAQ' },
   { to: '/contact', label: 'Contact' },
 ]
-const NAV_ALL = [...NAV_MAIN, { to: '/track', label: 'Track order' }, { to: '/shipping-returns', label: 'Shipping & Returns' }]
+const NAV_EXTRA = [{ to: '/track', label: 'Track order' }, { to: '/shipping-returns', label: 'Shipping & Returns' }]
+
+// One-product shop: "Shop" becomes a direct link to that product.
+function useNav() {
+  const { products } = useStore()
+  const only = products.length === 1 ? products[0] : null
+  const main = NAV_MAIN.map((n) => (n.to === '/shop' && only ? { to: `/product/${only.slug}`, label: only.name } : n))
+  return { main, all: [...main, ...NAV_EXTRA] }
+}
 
 export function DemoBanner() {
   if (!DEMO_MODE) return null
@@ -76,6 +84,7 @@ function BagButton({ variant = 'circle' }) {
 }
 
 function Header() {
+  const nav = useNav()
   const [open, setOpen] = useState(false)
   const location = useLocation()
   const menuButton = useRef(null)
@@ -106,7 +115,7 @@ function Header() {
       <div className="container-page hidden h-20 grid-cols-[1fr_auto_1fr] items-center gap-6 lg:grid">
         <Logo className="h-14" />
         <nav className="flex items-center gap-10" aria-label="Main">
-          {NAV_MAIN.map((n) => (
+          {nav.main.map((n) => (
             <NavLink key={n.to} to={n.to} end={n.end} className={linkClass}>
               {n.label}
             </NavLink>
@@ -146,7 +155,7 @@ function Header() {
       {open && (
         <nav id="mobile-nav" className="animate-fade border-t border-rose-100 bg-ivory lg:hidden" aria-label="Mobile">
           <div className="container-page flex flex-col divide-y divide-rose-100 py-2">
-            {NAV_ALL.map((n) => (
+            {nav.all.map((n) => (
               <NavLink
                 key={n.to}
                 to={n.to}
@@ -181,6 +190,8 @@ export function SocialLinks({ settings, className = '', iconClass = 'h-5 w-5' })
 }
 
 function Footer({ settings }) {
+  const { products } = useStore()
+  const only = products.length === 1 ? products[0] : null
   return (
     <footer className="bg-noir text-rose-100/80">
       <div className="container-page grid gap-10 py-14 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr]">
@@ -193,7 +204,7 @@ function Footer({ settings }) {
           <h2 className="tracked-caps mb-4 font-sans text-[0.68rem] text-rose-300">Shop</h2>
           <ul className="space-y-2.5 text-sm">
             {[
-              ['/shop', 'All products'],
+              only ? [`/product/${only.slug}`, only.name] : ['/shop', 'All products'],
               ['/track', 'Track your order'],
               ['/shipping-returns', 'Shipping & Returns'],
               ['/faq', 'FAQ'],

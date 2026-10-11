@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { Leaf, Layers, Sun, Package } from 'lucide-react'
 import { useStore } from '../lib/StoreContext.jsx'
 import { useOrderNow } from '../lib/useOrderNow.js'
 import { useSeo } from '../lib/useSeo.js'
@@ -10,6 +9,7 @@ import { Sparkle } from '../components/icons.jsx'
 import { SocialLinks } from '../components/Layout.jsx'
 import ProductCard from '../components/ProductCard.jsx'
 import { DesktopHero, MobileCollection, MobileHero } from '../components/HomeHero.jsx'
+import FeatureBanners from '../components/FeatureBanners.jsx'
 import Shop from './Shop.jsx'
 
 function OrderNowButton({ product, className = 'btn-solid', children = 'Order now' }) {
@@ -56,6 +56,7 @@ export default function Home() {
       <DesktopHero featured={featured} settings={settings} products={products} />
       <MobileHero featured={featured} settings={settings} />
       <MobileCollection products={products} categories={categories} settings={settings} />
+      <FeatureBanners product={featured} />
 
       {/* ---------------------------------------------------- How it works */}
       <section id="how-it-works" className="scroll-mt-24 py-16 sm:py-24">
@@ -104,54 +105,6 @@ export default function Home() {
               ))}
             </ul>
           </figure>
-        </div>
-      </section>
-
-      {/* ------------------------------------------------- Big split panels */}
-      <section className="grid lg:grid-cols-2">
-        <div className="relative flex min-h-[70svh] items-center justify-center overflow-hidden bg-noir px-8 py-16 lg:min-h-[90svh]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(184,112,107,0.35),transparent_60%)]" aria-hidden="true" />
-          <img
-            src="/images/hero-box.webp"
-            alt=""
-            width="900"
-            height="900"
-            loading="lazy"
-            className="relative w-[78%] max-w-[460px] rotate-[-4deg] drop-shadow-[0_40px_50px_rgba(0,0,0,0.6)]"
-          />
-          <Sparkle className="animate-twinkle absolute top-[14%] right-[16%] h-6 w-6 text-rose-200" />
-          <Sparkle className="animate-twinkle absolute bottom-[18%] left-[14%] h-4 w-4 text-rose-300" style={{ animationDelay: '1.4s' }} />
-          <p className="absolute bottom-6 left-0 w-full text-center text-[0.65rem] tracking-[0.3em] text-rose-200/70 uppercase">
-            Black compact · rose-gold foil · 53 × 53 mm
-          </p>
-        </div>
-        <div className="flex flex-col justify-center bg-ivory px-6 py-16 sm:px-12 lg:px-16 lg:py-20">
-          <Eyebrow>Why you&apos;ll love it</Eyebrow>
-          <h2 className="mt-3 font-display text-4xl leading-tight text-noir sm:text-5xl">
-            Crystal in the compact.
-            <br />
-            <em className="text-foil">Light</em> on your cheek.
-          </h2>
-          <ul className="mt-10 grid gap-8 sm:grid-cols-2">
-            {[
-              { icon: Sun, title: 'Adapts to you', body: 'One shade for every skin tone: the colour develops to match your undertone.' },
-              { icon: Layers, title: 'Buildable', body: 'Sheer and fresh with one tap, deeper with a few. A little goes a long way.' },
-              { icon: Leaf, title: 'Cruelty-free', body: 'Never tested on animals. Use within 12 months of opening.' },
-              { icon: Package, title: 'Pocket-sized', body: `A slim 53 × 53 mm compact, 1.8 g — made for touch-ups on the go.` },
-            ].map(({ icon: Icon, title, body }) => (
-              <li key={title} className="border-t border-noir pt-5">
-                <Icon className="h-5 w-5 text-rose-600" strokeWidth={1.5} aria-hidden="true" />
-                <h3 className="mt-3 tracked-caps font-sans text-xs text-noir">{title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{body}</p>
-              </li>
-            ))}
-          </ul>
-          <div className="mt-10 flex flex-wrap gap-3">
-            <OrderNowButton product={featured}>Order now — {formatMoney(min)}</OrderNowButton>
-            <Link to={`/product/${featured.slug}`} className="btn-outline">
-              Product details
-            </Link>
-          </div>
         </div>
       </section>
 

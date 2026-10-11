@@ -318,6 +318,7 @@ export function MobileCollection({ products, categories, settings }) {
           </span>
         </h2>
 
+        {products.length > 1 && (
         <div className="no-scrollbar -mx-4 mt-6 flex gap-2 overflow-x-auto px-4" role="toolbar" aria-label="Filter products">
           <Link to="/shop?search=1" className="flex h-11 w-11 shrink-0 items-center justify-center bg-blush-100 text-noir" aria-label="Search products">
             <Search className="h-4 w-4" />
@@ -337,6 +338,7 @@ export function MobileCollection({ products, categories, settings }) {
             Shop all
           </Link>
         </div>
+        )}
 
         <ul className="mt-5 grid gap-6 sm:grid-cols-2">
           {list.map((p) => {

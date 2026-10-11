@@ -10,6 +10,8 @@
 //   images/product-mockup.webp    the client's packaging mockup (front + back)
 //   images/product-back.webp      back of the box (ingredients), cropped from the mockup
 //   og-image.jpg                  1200×630 social share image
+//   images/scene-flatlay.webp     styled flat lay of compacts (stand-in for photography)
+//   images/scene-podium.webp      pans on white podiums (stand-in for photography)
 import sharp from 'sharp'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -190,10 +192,104 @@ async function ogImage(logoPng) {
     .toFile(out('og-image.jpg'))
 }
 
+// ------------------------------------------------------- lifestyle scenes ---
+// Stand-ins for product photography (owner can replace in Admin later):
+//   scene-flatlay.webp  diagonal rows of compacts + pans on a peachy blush
+//   scene-podium.webp   blush pans on white podiums, warm studio light
+async function withShadow(png, { blur = 18, dx = 14, dy = 22, opacity = 0.35 } = {}) {
+  const m = await sharp(png).metadata()
+  const pad = blur * 3
+  const alpha = await sharp(png).extractChannel('alpha').toBuffer()
+  const shadow = await sharp({ create: { width: m.width, height: m.height, channels: 3, background: { r: 90, g: 40, b: 45 } } })
+    .joinChannel(alpha)
+    .png()
+    .toBuffer()
+  const soft = await sharp(shadow)
+    .extend({ top: pad, bottom: pad, left: pad, right: pad, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .ensureAlpha(opacity)
+    .blur(blur)
+    .linear([1, 1, 1, opacity], [0, 0, 0, 0])
+    .png()
+    .toBuffer()
+  return sharp({ create: { width: m.width + pad * 2 + dx, height: m.height + pad * 2 + dy, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([
+      { input: soft, left: dx, top: dy },
+      { input: png, left: pad, top: pad },
+    ])
+    .png()
+    .toBuffer()
+}
+
+async function scenes() {
+  const box = await sharp(out('images', 'hero-box.webp')).png().toBuffer()
+  const pan = await sharp(out('images', 'pan-transparent.webp')).png().toBuffer()
+
+  // Flat lay: tiles on a big canvas, rotated, then cropped.
+  const W = 2600
+  const H = 2000
+  const boxTile = await withShadow(await sharp(box).resize(300).png().toBuffer())
+  const panTile = await withShadow(await sharp(pan).resize(230).png().toBuffer(), { blur: 14 })
+  const comps = []
+  for (let row = 0, y = -80; y < H; row++, y += 330) {
+    for (let col = 0, x = row % 2 ? -200 : -40; x < W; col++, x += 340) {
+      comps.push({ input: (row + col) % 3 === 1 ? panTile : boxTile, left: Math.round(x), top: Math.round(y) })
+    }
+  }
+  const bg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f9ddd6"/><stop offset="1" stop-color="#eebfb3"/></linearGradient></defs>
+    <rect width="100%" height="100%" fill="url(#g)"/></svg>`
+  const big = await sharp(Buffer.from(bg)).composite(comps).png().toBuffer()
+  const rotated = await sharp(big).rotate(-24, { background: '#f3cfc6' }).png().toBuffer()
+  const rm = await sharp(rotated).metadata()
+  const flat = await sharp(rotated)
+    .extract({ left: Math.round((rm.width - 1800) / 2), top: Math.round((rm.height - 1100) / 2), width: 1800, height: 1100 })
+    .toBuffer()
+  // warm light from the top-left
+  const light = `<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1100"><defs>
+    <radialGradient id="l" cx=".2" cy=".1" r="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#5a2a33" stop-opacity=".18"/></radialGradient></defs>
+    <rect width="100%" height="100%" fill="url(#l)"/></svg>`
+  const flatlay = await sharp(flat).composite([{ input: Buffer.from(light) }]).png().toBuffer()
+  await sharp(flatlay).webp({ quality: 82 }).toFile(out('images', 'scene-flatlay.webp'))
+  await sharp(flatlay).resize(900).webp({ quality: 80 }).toFile(out('images', 'scene-flatlay-900.webp'))
+
+  // Podium scene
+  const PW = 1800
+  const PH = 1100
+  const cyl = (cx, top, w, h) => `
+    <rect x="${cx - w / 2}" y="${top}" width="${w}" height="${h}" fill="url(#side)"/>
+    <ellipse cx="${cx}" cy="${top + h}" rx="${w / 2}" ry="${w * 0.09}" fill="url(#side)"/>
+    <ellipse cx="${cx}" cy="${top}" rx="${w / 2}" ry="${w * 0.09}" fill="#fffaf7"/>`
+  const podiumSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${PW}" height="${PH}"><defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f6d9cf"/><stop offset=".55" stop-color="#e9b8a6"/><stop offset="1" stop-color="#b9806b"/></linearGradient>
+    <linearGradient id="side" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f4ece8"/><stop offset=".45" stop-color="#ffffff"/><stop offset="1" stop-color="#d9c6bf"/></linearGradient>
+    <radialGradient id="glow" cx=".35" cy=".35" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs>
+    <rect width="100%" height="100%" fill="url(#wall)"/>
+    <rect width="100%" height="100%" fill="url(#glow)"/>
+    ${cyl(560, 640, 420, 520)}
+    ${cyl(900, 430, 360, 720)}
+    ${cyl(1220, 720, 400, 440)}
+  </svg>`
+  const panBig = await withShadow(await sharp(pan).resize(330).png().toBuffer(), { blur: 16, dx: 18, dy: 26 })
+  const panMid = await withShadow(await sharp(pan).resize(270).png().toBuffer(), { blur: 14, dx: 16, dy: 22 })
+  const boxLean = await withShadow(await sharp(box).resize(360).rotate(-10, { background: { r: 0, g: 0, b: 0, alpha: 0 } }).png().toBuffer(), { blur: 18 })
+  const podium = await sharp(Buffer.from(podiumSvg))
+    .composite([
+      { input: boxLean, left: 655, top: 30 },
+      { input: panBig, left: 330, top: 380 },
+      { input: panMid, left: 1040, top: 500 },
+      { input: await withShadow(await sharp(pan).resize(210).png().toBuffer(), { blur: 12 }), left: 120, top: 760 },
+    ])
+    .png()
+    .toBuffer()
+  await sharp(podium).webp({ quality: 82 }).toFile(out('images', 'scene-podium.webp'))
+  await sharp(podium).resize(900).webp({ quality: 80 }).toFile(out('images', 'scene-podium-900.webp'))
+}
+
 const logoPng = await cleanLogo()
 await favicons()
 await productBox(logoPng)
 await pan()
 await mockups()
 await ogImage(logoPng)
+await scenes()
 console.log('✔ images built')
