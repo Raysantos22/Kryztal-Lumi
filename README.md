@@ -180,6 +180,9 @@ npx supabase db push                          # all migrations (tables, RLS, fun
 
 3. Add the custom domain, then set `SITE_URL` and `ALLOWED_ORIGIN` (function secrets) to the same address.
 
+> **Before Supabase is connected**, set only `VITE_DEMO_MODE=true` on Vercel to publish a demo preview.
+> Remove it once the three variables above are set, or the live shop would stay in demo mode.
+
 ## 5. Payments (no payment gateway)
 
 - **COD:** the order starts as `new`. The owner confirms it, packs it and ships it. Marking it
