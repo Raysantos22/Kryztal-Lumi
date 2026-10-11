@@ -21,11 +21,11 @@ insert into public.store_settings (
   null, null, null,                                                               -- PLACEHOLDER phone / Viber / WhatsApp
   null, null, null, null,                                                         -- socials: hidden while empty
   true,
-  'Nationwide shipping · Cash on delivery or GCash',
+  'Fast nationwide shipping · Cash on delivery',
   'PHP',
   'Asia/Manila',
   true,
-  true,
+  false,                                                                          -- GCash off: cash on delivery only (Admin → Settings can turn it on)
   null,                                                                           -- PLACEHOLDER GCash account name
   null,                                                                           -- PLACEHOLDER GCash number
   '/placeholders/gcash-qr.svg',                                                   -- PLACEHOLDER GCash QR
@@ -43,7 +43,7 @@ insert into public.store_settings (
     {"q": "Will it suit my skin tone?", "a": "That''s the idea. Because the colour develops on your skin, it adapts to your own undertone. Start with a little and build up, from a barely-there glow to a stronger flush."},
     {"q": "How do I apply it?", "a": "Tap a finger or a soft brush lightly on the pan, then press and blend onto the apples of your cheeks. Wait a minute or two for the colour to develop before adding more."},
     {"q": "Is it cruelty-free?", "a": "Yes. Crystal Blush is cruelty-free. Use within 12 months after opening."},
-    {"q": "How do I pay?", "a": "Choose Cash on Delivery and pay the courier when your parcel arrives, or pay ahead with GCash. GCash orders are confirmed once we verify your payment."},
+    {"q": "How do I pay?", "a": "Cash on Delivery: just fill in the order form and pay the rider in cash when your parcel arrives. No card or online payment needed."},
     {"q": "How long is delivery?", "a": "Metro Manila 2–3 days, Luzon 3–5 days, Visayas and Mindanao 5–7 days after your order ships. You can follow your parcel on the Track Order page."},
     {"q": "Can I return or exchange?", "a": "We exchange damaged or wrong items within 7 days of delivery. Message us with your order number and a photo or unboxing video."}
   ]'::jsonb
@@ -67,7 +67,7 @@ on conflict (id) do nothing;
 -- Product: Crystal Blush (₱399, 50 in stock, no variants)
 -- ---------------------------------------------------------------------
 insert into public.products (
-  id, slug, name, subtitle, description, details, ingredients, specs,
+  id, slug, name, subtitle, description, details, ingredients, highlights, specs,
   price, stock, track_stock, max_per_order, is_active, is_featured, badge_new, sort_order
 ) values (
   'c0000000-0000-4000-8000-000000000001',
@@ -77,6 +77,7 @@ insert into public.products (
   'A deep crystal in the compact, your own rosy flush on the cheek. Crystal Blush develops on contact with your skin and adapts to your undertone, so every wearer gets a shade that looks naturally theirs. Silky, buildable and long-wearing, in a slim black compact finished in rose-gold foil.',
   E'1. Tap a fingertip or soft brush lightly on the pan.\n2. Press onto the apples of your cheeks and blend upwards.\n3. Wait 1–2 minutes while the colour develops, then build up if you want more.\n\nTip: a little goes a long way. Start sheer.',
   'Caprylic/Capric Triglyceride, Octyldodecanol, Tridecyl Trimellitate, Diisostearyl Malate, Hydrogenated Polyisobutene, C12-15 Alkyl Benzoate, Microcrystalline Wax, Polyisobutene, Synthetic Wax, Paraffin, Black Iron Oxide (CI 77499), Phenoxyethanol, Isostearic Acid, D&C Red No.22 (CI 45380), Ethylhexylglycerin, Tocopherol.',
+  array['Tone-adapt colour', 'One shade for every skin tone', 'Buildable & long-wearing', 'Cruelty-free', 'Fast delivery', 'Cash on delivery'],
   '[
     {"label": "Net wt", "value": "1.8 g / 0.063 oz"},
     {"label": "Compact", "value": "53 × 53 mm"},
@@ -95,7 +96,7 @@ insert into public.products (
 )
 on conflict (id) do update set
   slug = excluded.slug, name = excluded.name, subtitle = excluded.subtitle, description = excluded.description,
-  details = excluded.details, ingredients = excluded.ingredients, specs = excluded.specs, price = excluded.price,
+  details = excluded.details, ingredients = excluded.ingredients, highlights = excluded.highlights, specs = excluded.specs, price = excluded.price,
   max_per_order = excluded.max_per_order, is_featured = excluded.is_featured, badge_new = excluded.badge_new;
 
 -- Images: crisp render of the box, illustrated pan, the client's mockup and

@@ -44,6 +44,9 @@ beforeEach(async () => {
   db = await createDb()
   await q('insert into auth.users (id, email) values ($1, $2), ($3, $4)', [ADMIN_USER, 'owner@example.com', OTHER_USER, 'other@example.com'])
   await q('insert into admin_users (user_id, role) values ($1, $2)', [ADMIN_USER, 'owner'])
+  // The shop launches cash-on-delivery only; GCash stays available as a
+  // setting, so its flow is tested with it switched on.
+  await q('update store_settings set gcash_enabled = true')
 }, 30000)
 
 describe('seed', () => {
@@ -64,6 +67,18 @@ describe('seed', () => {
       { name: 'Visayas', fee: 150, delivery_time: '5–7 days' },
       { name: 'Mindanao', fee: 170, delivery_time: '5–7 days' },
     ])
+  })
+
+  it('launches cash-on-delivery only (GCash switched off in the seed)', async () => {
+    const fresh = await createDb()
+    const s = (await fresh.query('select cod_enabled, gcash_enabled, announcement_text from store_settings')).rows[0]
+    expect(s).toMatchObject({ cod_enabled: true, gcash_enabled: false })
+    expect(s.announcement_text).toContain('Cash on delivery')
+    await expect(
+      fresh.query('select create_order($1, $2, $3)', [JSON.stringify([{ product_id: PRODUCT_ID, quantity: 1 }]), JSON.stringify(CUSTOMER), 'gcash']),
+    ).rejects.toThrow('not available')
+    const highlights = (await fresh.query('select highlights from products where id = $1', [PRODUCT_ID])).rows[0].highlights
+    expect(highlights).toContain('Cash on delivery')
   })
 
   it('every province is in exactly one zone', async () => {

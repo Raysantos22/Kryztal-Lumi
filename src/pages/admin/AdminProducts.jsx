@@ -78,11 +78,11 @@ export function AdminProducts() {
 }
 
 const PRODUCT_FIELDS = [
-  'name', 'slug', 'subtitle', 'description', 'details', 'ingredients', 'specs', 'price', 'compare_at_price',
+  'name', 'slug', 'subtitle', 'description', 'details', 'ingredients', 'highlights', 'specs', 'price', 'compare_at_price',
   'track_stock', 'variant_label', 'max_per_order', 'category_id', 'is_active', 'is_featured', 'badge_new', 'badge_bestseller', 'sort_order',
 ]
 const NEW_PRODUCT = {
-  name: '', slug: '', subtitle: '', description: '', details: '', ingredients: '', specs: [], price: '', compare_at_price: '',
+  name: '', slug: '', subtitle: '', description: '', details: '', ingredients: '', highlights: '', specs: [], price: '', compare_at_price: '',
   stock: 0, track_stock: true, variant_label: 'Shade', max_per_order: 10, category_id: '', is_active: false, is_featured: false,
   badge_new: true, badge_bestseller: false, sort_order: 10,
 }
@@ -97,6 +97,11 @@ function toRow(f) {
   row.category_id = f.category_id || null
   row.specs = (f.specs || []).filter((s) => s.label?.trim() && s.value?.trim()).map((s) => ({ label: s.label.trim(), value: s.value.trim() }))
   for (const k of ['subtitle', 'description', 'details', 'ingredients']) row[k] = f[k]?.trim() || null
+  row.highlights = String(f.highlights || '')
+    .split('\n')
+    .map((h) => h.trim())
+    .filter(Boolean)
+    .slice(0, 12)
   row.name = f.name.trim()
   row.slug = slugify(f.slug || f.name)
   row.variant_label = f.variant_label?.trim() || 'Option'
@@ -308,7 +313,7 @@ export function AdminProductEdit() {
 
   useEffect(() => {
     if (isNew) setF({ ...NEW_PRODUCT })
-    else if (product) setF({ ...product, price: product.price, compare_at_price: product.compare_at_price ?? '', category_id: product.category_id || '' })
+    else if (product) setF({ ...product, highlights: (product.highlights || []).join('\n'), price: product.price, compare_at_price: product.compare_at_price ?? '', category_id: product.category_id || '' })
   }, [isNew, product])
 
   if (!isNew && products.loading && !products.data) return <Loading />
@@ -390,6 +395,9 @@ export function AdminProductEdit() {
             </Field>
             <Field label="Ingredients" htmlFor="p-ingredients" optional>
               <textarea id="p-ingredients" className="input min-h-28" value={f.ingredients || ''} onChange={set('ingredients')} />
+            </Field>
+            <Field label="Highlights" htmlFor="p-highlights" optional hint="One per line, shown with hearts above the order form" className="sm:col-span-2">
+              <textarea id="p-highlights" className="input min-h-24" value={f.highlights} onChange={set('highlights')} placeholder={'Tone-adapt colour\nCruelty-free\nCash on delivery'} />
             </Field>
             <Field label="Category" htmlFor="p-category" optional>
               <select id="p-category" className="input" value={f.category_id} onChange={set('category_id')}>

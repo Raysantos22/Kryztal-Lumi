@@ -9,7 +9,8 @@ import { useSeo } from '../lib/useSeo.js'
 import { SITE_URL } from '../lib/config.js'
 import { activeVariants, availableStock, hasVariants, priceRange, productBadges, sizeTag } from '../lib/catalog.js'
 import { formatMoney } from '../lib/format.js'
-import { ErrorBox, ImagePlaceholder, Loading, ProductBadges, QuantityInput } from '../components/ui.jsx'
+import { ErrorBox, ImagePlaceholder, Loading, ProductBadges } from '../components/ui.jsx'
+import OrderForm, { BenefitList, PriceBlock } from '../components/OrderForm.jsx'
 import NotFound from './NotFound.jsx'
 
 function Gallery({ images, name, tag }) {
@@ -174,21 +175,18 @@ export default function Product() {
   // Always re-read the product so stock is current.
   const { data: product, loading, error, reload } = useAsync(() => api.getProduct(slug), [slug])
   const [variantId, setVariantId] = useState(null)
-  const [qty, setQty] = useState(1)
 
   const variants = useMemo(() => activeVariants(product), [product])
   useEffect(() => {
     // Preselect the first variant that is in stock.
     const first = variants.find((v) => !product?.track_stock || v.stock > 0) || variants[0]
     setVariantId(first?.id || null)
-    setQty(1)
   }, [variants, product?.track_stock])
 
   const variant = variants.find((v) => v.id === variantId) || null
   const needsVariant = variants.length > 0
   const stock = product ? availableStock(product, needsVariant ? variant : null) : 0
   const soldOut = stock <= 0
-  const maxQty = product ? Math.max(1, Math.min(stock === Infinity ? 99 : stock, product.max_per_order)) : 1
   const badges = product ? productBadges(product, { lowStockThreshold: settings?.low_stock_threshold, variant: needsVariant ? variant : null }) : []
   const price = variant ? variant.price : product?.price
 
@@ -202,6 +200,13 @@ export default function Product() {
     jsonLd: product ? productJsonLd(product, settings) : null,
   })
 
+  // Opened from an "Order now" button elsewhere: jump to the form.
+  useEffect(() => {
+    if (product && window.location.hash === '#order-form') {
+      requestAnimationFrame(() => document.getElementById('order-form')?.scrollIntoView({ block: 'start' }))
+    }
+  }, [product])
+
   if (loading && !product) return <Loading />
   if (error)
     return (
@@ -213,12 +218,11 @@ export default function Product() {
 
   const addToBag = (andCheckout = false) => {
     if (needsVariant && !variant) return
-    add(product.id, variant?.id || null, qty)
+    add(product.id, variant?.id || null, 1)
     if (andCheckout) navigate('/checkout')
     else setOpen(true)
   }
   const { min, max } = priceRange(product)
-  const compareAt = product.compare_at_price != null && Number(product.compare_at_price) > Number(price) ? product.compare_at_price : null
   const disabled = soldOut || (needsVariant && !variant)
 
   return (
@@ -258,68 +262,41 @@ export default function Product() {
 
         <div className="md:sticky md:top-28 md:self-start">
           <ProductBadges badges={badges} />
-          <div className="mt-3 flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <h1 className="font-sans text-3xl leading-tight font-bold tracking-tight text-noir md:font-display md:text-6xl md:leading-none md:font-medium md:tracking-normal">
-                {product.name}
-              </h1>
-              {product.subtitle && <p className="mt-1.5 text-sm text-muted md:tracked-caps md:mt-2 md:text-[0.7rem] md:text-rose-700">{product.subtitle}</p>}
-            </div>
-            <div className="shrink-0 text-right md:hidden">
-              {compareAt && <s className="block text-sm text-muted">{formatMoney(compareAt)}</s>}
-              <p className="text-3xl font-bold text-noir tabular-nums" data-testid="product-price">
-                {needsVariant && !variant && min !== max ? `${formatMoney(min)}+` : formatMoney(price)}
+          <h1 className="mt-3 font-sans text-3xl leading-tight font-bold tracking-tight text-noir md:text-5xl">{product.name}</h1>
+          {product.subtitle && <p className="mt-1.5 text-sm text-muted md:text-base">{product.subtitle}</p>}
+          <div className="mt-4" data-testid="product-price">
+            {needsVariant && min !== max ? (
+              <p className="font-sans text-4xl font-bold text-rose-600 tabular-nums">
+                {formatMoney(min)} – {formatMoney(max)}
               </p>
-            </div>
+            ) : (
+              <PriceBlock price={price} compareAt={product.compare_at_price} />
+            )}
           </div>
-          <p className="mt-5 hidden font-display text-3xl text-noir tabular-nums md:block">
-            {compareAt && <s className="mr-2 text-[0.8em] text-stone-400">{formatMoney(compareAt)}</s>}
-            {needsVariant && !variant && min !== max ? `${formatMoney(min)} – ${formatMoney(max)}` : formatMoney(price)}
-          </p>
+          {product.highlights?.length > 0 && (
+            <div className="mt-4 border-t border-rose-100 pt-4">
+              <BenefitList items={product.highlights} />
+            </div>
+          )}
+          {!soldOut && stock !== Infinity && stock <= (settings?.low_stock_threshold ?? 5) && (
+            <p className="mt-3 text-sm font-medium text-rose-700">Only {stock} left — order soon.</p>
+          )}
 
-          {needsVariant && (
-            <fieldset className="mt-6">
-              <legend className="tracked-caps text-[0.68rem] text-noir">
-                {product.variant_label}: <span className="text-muted normal-case tracking-normal">{variant?.name || 'choose one'}</span>
-              </legend>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {variants.map((v) => {
-                  const out = product.track_stock && v.stock <= 0
-                  return (
-                    <label
-                      key={v.id}
-                      className={`flex cursor-pointer items-center gap-2 border px-4 py-2 text-sm transition has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-rose-600 ${
-                        v.id === variantId ? 'border-noir bg-noir text-ivory' : 'border-rose-200 bg-white text-noir hover:border-noir'
-                      } ${out ? 'opacity-50' : ''}`}
-                    >
-                      <input type="radio" name="variant" value={v.id} checked={v.id === variantId} onChange={() => { setVariantId(v.id); setQty(1) }} className="sr-only" />
-                      {v.swatch && <span className="h-4 w-4 rounded-full ring-1 ring-black/10" style={{ background: v.swatch }} aria-hidden="true" />}
-                      {v.name}
-                      {out && <span className="text-xs">(sold out)</span>}
-                    </label>
-                  )
-                })}
-              </div>
-            </fieldset>
+          <div className="mt-5">
+            <OrderForm key={product.id} product={product} />
+          </div>
+          {!needsVariant && (
+            <button
+              type="button"
+              className="mt-3 w-full py-2 text-center text-sm text-muted underline underline-offset-4 hover:text-noir disabled:no-underline"
+              onClick={() => addToBag(false)}
+              disabled={disabled}
+            >
+              {soldOut ? 'Sold out' : 'Add to bag'}
+            </button>
           )}
 
           <InfoTabs product={product} settings={settings} />
-
-          {/* Tablets / desktop: inline buy box */}
-          <div className="mt-7 hidden flex-wrap items-center gap-3 md:flex">
-            <QuantityInput value={qty} onChange={setQty} max={maxQty} label="Quantity" />
-            <button type="button" className="btn-outline flex-1" onClick={() => addToBag(false)} disabled={disabled}>
-              {soldOut ? 'Sold out' : 'Add to bag'}
-            </button>
-          </div>
-          {!soldOut && (
-            <button type="button" className="btn-solid mt-3 w-full" onClick={() => addToBag(true)} disabled={needsVariant && !variant}>
-              Buy now — {formatMoney(Number(price) * qty)}
-            </button>
-          )}
-          {!soldOut && stock !== Infinity && stock <= (settings?.low_stock_threshold ?? 5) && (
-            <p className="mt-3 text-sm text-rose-800">Only {stock} left — order soon.</p>
-          )}
 
           <ul className="mt-7 grid gap-2 bg-blush-50 p-4 text-sm text-ink/80">
             <li className="flex items-center gap-2.5">
@@ -343,20 +320,14 @@ export default function Product() {
         </div>
       </div>
 
-      {/* Phones: sticky add-to-bag bar */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-rose-100 bg-ivory/95 px-4 py-3 backdrop-blur md:hidden" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
-        <div className="flex items-center gap-3">
-          <QuantityInput value={qty} onChange={setQty} max={maxQty} label="Quantity" size="sm" />
-          <button
-            type="button"
-            className="h-12 flex-1 bg-noir text-sm text-ivory transition hover:bg-rose-800 disabled:opacity-50"
-            onClick={() => addToBag(false)}
-            disabled={disabled}
-          >
-            {soldOut ? 'Sold out' : `Add to bag · ${formatMoney(Number(price) * qty)}`}
-          </button>
+      {/* Phones: sticky "Order now" bar that jumps to the form */}
+      {!soldOut && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-rose-100 bg-ivory/95 px-4 py-3 backdrop-blur md:hidden" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+          <a href="#order-form" className="flex h-12 w-full items-center justify-center rounded-lg bg-rose-600 text-sm font-semibold text-white">
+            Order now · {formatMoney(price)} · Cash on delivery
+          </a>
         </div>
-      </div>
+      )}
     </div>
   )
 }

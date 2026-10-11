@@ -344,7 +344,7 @@ function Notifications({ order: o, onChanged }) {
     ['confirmed', 'order_confirmed', 'Confirmation'],
     ['shipped', 'order_shipped', 'Shipping'],
   ].filter(([s]) => (s === 'confirmed' ? ['confirmed', 'packed', 'shipped', 'delivered'] : ['shipped', 'delivered']).includes(o.status))
-  const label = { owner_new_order: 'New-order alert to you', order_confirmed: 'Confirmation to customer', order_shipped: 'Shipping email to customer' }
+  const label = { owner_new_order: 'New-order alert to you', order_received: 'Order received email to customer', order_confirmed: 'Confirmation to customer', order_shipped: 'Shipping email to customer' }
 
   return (
     <Panel title="Emails" description="Customers get an email (if they gave one) when their order is confirmed and when it ships.">

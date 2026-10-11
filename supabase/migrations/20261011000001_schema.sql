@@ -128,6 +128,8 @@ create table public.products (
   -- "How to use" / details (free text, line breaks kept)
   details           text,
   ingredients       text,
+  -- Short selling points shown with heart bullets above the order form
+  highlights        text[] not null default '{}',
   -- Small spec table: [{"label": "Net wt", "value": "1.8 g / 0.063 oz"}]
   specs             jsonb not null default '[]'::jsonb check (jsonb_typeof(specs) = 'array'),
   price             numeric(10,2) not null check (price >= 0),

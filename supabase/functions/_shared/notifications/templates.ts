@@ -161,3 +161,28 @@ ${track ? button(track, 'Track your order') : ''}
   )
   return { subject: `Order ${o.order_no} has shipped — ${store.store_name}`, text, html }
 }
+
+// To the customer right after they place an order (if they gave an email).
+export function orderReceivedMessage(o: OrderDetails, store: StoreDetails, siteUrl?: string): OutgoingMessage {
+  const first = o.customer.name.split(' ')[0]
+  const track = trackUrl(siteUrl, o.order_no)
+  const payLine =
+    o.payment_method === 'cod'
+      ? `Please prepare ${money(o.total, store.currency)} in cash for the rider when your parcel arrives.`
+      : `Your order is reserved while we wait for your GCash payment of ${money(o.total, store.currency)}.`
+  const text =
+    `Hi ${first}! Thank you for your ${store.store_name} order ${o.order_no}. ${payLine} ` +
+    `We'll confirm it shortly and let you know when it ships.${track ? ` Track it: ${track}` : ''}`
+  const html = shell(
+    'We received your order ✨',
+    `<p>Hi ${esc(first)},</p>
+<p>Thank you for ordering! Your order number is <strong>${esc(o.order_no)}</strong>. We'll confirm it shortly and email you again when it ships.</p>
+${itemsTable(o, store.currency)}
+<p style="font-size:14px"><strong>Payment:</strong> ${esc(PAYMENT[o.payment_method])}. ${esc(payLine)}</p>
+<p style="font-size:14px"><strong>Delivering to:</strong> ${esc(addressText(o))}</p>
+${track ? button(track, 'Track your order') : ''}
+<p style="color:#6f6063;font-size:13px">Keep this email — you'll need your order number and mobile number to track your parcel.<br><br>With love,<br>${esc(store.store_name)}</p>`,
+    siteUrl,
+  )
+  return { subject: `Order ${o.order_no} received — ${store.store_name}`, text, html }
+}

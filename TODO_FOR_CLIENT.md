@@ -8,7 +8,9 @@ What I still need from you. ✏️ = you can change it yourself in **/admin** on
   transparent logo and a sparkle favicon.
 - **Crystal Blush**: ₱399, 50 in stock, tone-adapt, net wt 1.8 g / 0.063 oz, 53 × 53 mm, cruelty-free,
   12 months after opening, and the full ingredient list from the box.
-- Cash on Delivery and GCash (QR/number + reference no.). GCash orders wait until you mark them paid.
+- **Cash on Delivery only** (GCash is built in but switched off; turn it on in Admin → Settings if you ever want it).
+- One-step order form on the home page and product page; customers who enter their Gmail / email get their
+  order confirmation emailed automatically (needs the Resend setup below).
 - Shipping zones (placeholder fees): Metro Manila ₱100 (2–3 days) · Luzon ₱120 (3–5) · Visayas ₱150 (5–7)
   · Mindanao ₱170 (5–7).
 - Return policy (accepted default): exchange within 7 days for damaged or wrong items.
@@ -16,8 +18,6 @@ What I still need from you. ✏️ = you can change it yourself in **/admin** on
 - Socials, phone, Viber, WhatsApp and Messenger stay hidden until you fill them in.
 
 ## Must have before taking real orders
-- [ ] ✏️ **GCash QR code + GCash number + account name.** The site shows a "SAMPLE QR" for now. Go to
-      Admin → Settings → Payments.
 - [ ] 🛠 **Your admin login email** (and a strong password). I'll create it, or run `npm run create-admin`.
 - [ ] ✏️ **Email for new-order alerts.** Admin → Settings → New-order alerts.
 - [ ] 🛠 **Supabase project.** The project ref in the brief is still a placeholder. Send me the new

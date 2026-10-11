@@ -184,7 +184,7 @@ grant execute on function public.admin_set_stock(uuid, uuid, int, int) to servic
 -- (A column REVOKE can't override a table-wide grant, so re-grant UPDATE
 -- column by column, leaving out stock.)
 revoke update on public.products, public.product_variants from authenticated;
-grant update (slug, name, subtitle, description, details, ingredients, specs, price, compare_at_price,
+grant update (slug, name, subtitle, description, details, ingredients, highlights, specs, price, compare_at_price,
               track_stock, variant_label, max_per_order, category_id, is_active, is_featured,
               badge_new, badge_bestseller, sort_order)
   on public.products to authenticated;

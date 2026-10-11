@@ -66,12 +66,18 @@ export async function checkout(page, { payment = 'cod', reference = '', ...overr
   return (await page.getByTestId('placed-order-no').textContent()).trim()
 }
 
-// Home → Order now → checkout → order placed.
+// Home → Order now (jumps to the order form) → order placed. With
+// { payment: 'gcash' } it goes through the bag + checkout instead.
 export async function orderNow(page, opts = {}) {
+  if (opts.payment === 'gcash') {
+    await enableGcash(page)
+    await toCheckoutViaBag(page)
+    return checkout(page, opts)
+  }
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'Order now' }).first().click()
-  return checkout(page, opts)
+  await page.getByRole('button', { name: /^Order now/ }).first().click()
+  return quickOrder(page, opts)
 }
 
 export async function adminLogin(page, path = '/admin') {
@@ -95,4 +101,48 @@ export function api(page, fn, arg) {
     },
     { src: fn.toString(), arg },
   )
+}
+
+// Fill the one-step order form (home or product page) and place the order.
+// Returns the order number, or null with { expectError } when the order is refused.
+export async function quickOrder(page, { quantity = 1, expectError = null, ...overrides } = {}) {
+  const c = { ...CUSTOMER, ...overrides }
+  const form = page.getByTestId('order-form')
+  await expect(form).toBeVisible()
+  for (let i = 1; i < quantity; i++) await form.getByRole('button', { name: 'Increase quantity' }).click()
+  await form.getByLabel('Full Name').fill(c.name)
+  await form.getByLabel('Phone Number').fill(c.phone)
+  if (c.email) await form.getByLabel('Email').fill(c.email)
+  await form.getByLabel('Address (House Number, Street, Village)').fill(c.address)
+  await form.getByLabel('Province').selectOption(c.province)
+  await form.getByLabel('City / Municipality').fill(c.city)
+  await form.getByLabel('Barangay').fill(c.barangay)
+  await form.getByRole('button', { name: /^Place order/ }).click()
+  if (expectError) {
+    await expect(form.getByRole('alert').filter({ hasText: expectError })).toBeVisible()
+    return null
+  }
+  await expect(page.getByRole('heading', { name: /^Thank you/ })).toBeVisible()
+  return (await page.getByTestId('placed-order-no').textContent()).trim()
+}
+
+// GCash is off by default (cash on delivery only); some tests switch it on.
+export async function enableGcash(page) {
+  if (!page.url().startsWith('http')) {
+    await page.goto('/shop')
+    await waitForApp(page)
+  }
+  await api(page, async (api) => {
+    await api.signInWithPassword('admin@demo.test', 'demo1234')
+    await api.updateSettings({ gcash_enabled: true })
+    await api.signOut()
+  })
+}
+
+// Product page → Add to bag → bag drawer → Checkout page.
+export async function toCheckoutViaBag(page, slug = 'crystal-blush') {
+  await page.goto(`/product/${slug}`)
+  await waitForApp(page)
+  await page.getByRole('button', { name: 'Add to bag' }).click()
+  await page.getByRole('dialog', { name: 'Your bag' }).getByRole('button', { name: 'Checkout' }).click()
 }

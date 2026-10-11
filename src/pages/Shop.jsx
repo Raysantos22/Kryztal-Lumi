@@ -24,7 +24,7 @@ export default function Shop() {
 
   useSeo({
     title: 'Shop',
-    description: 'Shop Kryztal Lumi beauty: Crystal Blush and more. Cash on delivery or GCash, shipped nationwide in the Philippines.',
+    description: 'Shop Kryztal Lumi beauty: Crystal Blush and more. Cash on delivery, fast shipping nationwide in the Philippines.',
   })
 
   // Only show categories that actually have products.

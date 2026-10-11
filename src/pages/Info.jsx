@@ -59,7 +59,7 @@ export function Faq() {
   const faq = settings?.faq || []
   useSeo({
     title: 'FAQ',
-    description: 'Answers about Crystal Blush, payment (COD and GCash), delivery times and returns.',
+    description: 'Answers about Crystal Blush, cash on delivery, delivery times and returns.',
     jsonLd: faq.length
       ? {
           '@context': 'https://schema.org',

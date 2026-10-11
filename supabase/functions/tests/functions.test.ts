@@ -4,7 +4,7 @@ import { assert, assertEquals, assertMatch, assertStringIncludes } from 'jsr:@st
 import { toE164 } from '../_shared/notifications/phone.ts'
 import { enabledProviders, notify } from '../_shared/notifications/index.ts'
 import { resendEmail, twilioSms } from '../_shared/notifications/providers.ts'
-import { newOrderOwnerMessage, orderConfirmedMessage, orderShippedMessage, type OrderDetails } from '../_shared/notifications/templates.ts'
+import { newOrderOwnerMessage, orderConfirmedMessage, orderReceivedMessage, orderShippedMessage, type OrderDetails } from '../_shared/notifications/templates.ts'
 import type { NotificationProvider } from '../_shared/notifications/types.ts'
 import { validateOrderPayload } from '../_shared/orders.ts'
 
@@ -188,4 +188,13 @@ Deno.test('create-order payload validation', () => {
   assertEquals(validateOrderPayload({ ...ok, notes: 'x'.repeat(501) }), 'Notes are too long.')
   // Prices sent by the browser are simply ignored (never read).
   assertEquals(validateOrderPayload({ ...ok, items: [{ ...ok.items[0], price: 1 }] } as never), null)
+})
+
+Deno.test('order received email: order number, COD amount, address and tracking link', () => {
+  const m = orderReceivedMessage({ ...order, status: 'new' }, store, 'https://kryztallumi.example')
+  assertStringIncludes(m.subject, 'Order KL-24A7F3 received')
+  assertMatch(m.text, /prepare (₱898|PHPs?898) in cash for the rider/)
+  assertStringIncludes(m.text, 'https://kryztallumi.example/track?order=KL-24A7F3')
+  assertStringIncludes(m.html!, 'Brgy. San Antonio')
+  assert(!m.html!.includes('<script>'))
 })

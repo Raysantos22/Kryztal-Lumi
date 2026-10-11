@@ -6,9 +6,13 @@ any beauty or fashion product later.
 
 It is a React + Vite + Tailwind front end on top of Supabase (Postgres, Auth, Storage, Edge Functions).
 
-- **Customers** shop without an account. They add items to a bag, check out with their Philippine
-  address, and pay by **Cash on Delivery** or **GCash** (QR code or number, then they enter the reference
-  number). They can then follow the order on **Track order** using the order number and their mobile number.
+- **Customers** order without an account, straight from the **order form** on the home page or the product
+  page (name, mobile, optional email, address, province / city / barangay, landmark), and pay
+  **Cash on Delivery**. If they enter an email (e.g. Gmail), their order confirmation is emailed to them
+  automatically. A bag + checkout page also exists for multi-item orders. They follow the order on
+  **Track order** using the order number and their mobile number.
+- **GCash** (QR / number + reference) is built in but **switched off** — the shop launches COD-only. The
+  owner can turn it on in Admin → Settings → Payments.
 - **The owner** runs everything in `/admin`: the order dashboard, status changes, courier and tracking
   numbers, marking GCash payments as paid, products, variants, stock and photos, categories, shipping
   zones and store settings.
@@ -201,7 +205,7 @@ npx supabase db push                          # all migrations (tables, RLS, fun
 
 | Provider | Channel | Status |
 |---|---|---|
-| Resend | email | **On.** It sends the owner alert for every new order, and the customer email (if one was given) on *confirmed* and *shipped*. |
+| Resend | email | **On.** It sends the owner alert for every new order, and the customer emails (if they gave an email): *order received* right away, then *confirmed* and *shipped*. |
 | Twilio | sms | **Stub, off by default.** To turn it on, add `sms` to `NOTIFY_CHANNELS` and set the `TWILIO_*` secrets. |
 
 Every attempt is logged in `notifications_log` and shown on the order page in the admin. Before sending,
@@ -227,7 +231,7 @@ Product photos the owner uploads go to Supabase Storage.
 
 | Command | What it checks |
 |---|---|
-| `npm run test:db` | 47 Postgres tests on PGlite with the real migrations. They cover pricing from the DB, totals, zones and free shipping, minimum order, stock reservation and oversell refusal, multi-line rollback, variants, the anti-spam cap, GCash expiry and late-payment reinstatement, the status machine, restock-once, admin list and stats, RLS, column grants, storage policies, and a check that no function is executable by `anon` unless intended. |
+| `npm run test:db` | 48 Postgres tests on PGlite with the real migrations. They cover pricing from the DB, totals, zones and free shipping, minimum order, stock reservation and oversell refusal, multi-line rollback, variants, the anti-spam cap, GCash expiry and late-payment reinstatement, the status machine, restock-once, admin list and stats, RLS, column grants, storage policies, and a check that no function is executable by `anon` unless intended. |
 | `npm run test:functions` | Deno tests for the email templates (escaping, content), the provider HTTP calls, phone formatting, channel selection, and create-order payload validation. |
 | `npm run check:functions` | Type-checks the three edge functions. |
 | `npm run test:e2e` | 12 Playwright flows × desktop and Pixel 7, against demo mode. They cover every public page, COD and GCash checkout, the bag drawer, validation, the order cap, low stock and sold out, the full admin order flow with tracking, mark-paid, cancel and restock, product, variant and photo CRUD, shipping zones, free shipping, settings, categories, and horizontal scroll. |

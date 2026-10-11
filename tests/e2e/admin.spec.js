@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { PNG, PRODUCT_ID, adminLogin, api, bagButton, checkout, expectNoHorizontalScroll, orderNow, visible, waitForApp, watchErrors } from './helpers.js'
+import { PNG, PRODUCT_ID, adminLogin, api, expectNoHorizontalScroll, orderNow, quickOrder, visible, waitForApp, watchErrors } from './helpers.js'
 
 const orderRow = (page, orderNo) => page.locator(`[data-testid=admin-order-row][data-order-no="${orderNo}"]`).first()
 
@@ -122,8 +122,7 @@ test('products: create one with a shade variant and a photo, it sells; hiding re
   await page.getByRole('link', { name: 'Choose shade' }).click()
   await expect(page.getByTestId('product-price')).toHaveText('₱349')
   await expect(page.getByTestId('badge-low-stock')).toHaveText('Only 3 left')
-  await page.getByRole('button', { name: /^Buy now/ }).click()
-  const orderNo = await checkout(page, { phone: '0917 888 9999' })
+  const orderNo = await quickOrder(page, { phone: '0917 888 9999' })
   expect(orderNo).toMatch(/^KL-/)
   await expect(page.getByText('Rosé · 1 × ₱349')).toBeVisible()
 
@@ -172,18 +171,13 @@ test('shipping zones, free shipping and settings drive the shop', async ({ page 
   await expect(visible(page.getByRole('link', { name: 'Instagram' }))).toHaveAttribute('href', 'https://instagram.com/kryztallumi')
 
   // Pampanga (Luzon) at the new fee; 2 items reach free shipping
-  await page.getByRole('button', { name: 'Order now' }).first().click()
-  await page.getByLabel('Province', { exact: true }).selectOption('Pampanga')
-  await expect(page.getByTestId('checkout-shipping')).toHaveText('₱130')
-  await page.getByRole('radio', { name: /GCash/ }).check()
-  await expect(page.getByTestId('gcash-qr')).toHaveAttribute('src', /^data:image\/png/)
-  await expect(page.getByText('0917 000 1111')).toBeVisible()
-  await bagButton(page).click()
-  await page.getByRole('dialog', { name: 'Your bag' }).getByRole('button', { name: 'Increase quantity of Crystal Blush' }).click()
-  await expect(page.getByRole('dialog', { name: 'Your bag' })).toContainText('You get free shipping')
-  await page.keyboard.press('Escape')
-  await expect(page.getByTestId('checkout-shipping')).toHaveText('FREE')
-  await expect(page.getByTestId('checkout-total')).toHaveText('₱798')
+  await page.getByRole('button', { name: /^Order now/ }).first().click()
+  const form = page.getByTestId('order-form')
+  await form.getByLabel('Province').selectOption('Pampanga')
+  await expect(page.getByTestId('order-form-shipping')).toHaveText('₱130')
+  await form.getByRole('button', { name: 'Increase quantity' }).click()
+  await expect(page.getByTestId('order-form-shipping')).toHaveText('FREE')
+  await expect(page.getByTestId('order-form-total')).toHaveText('₱798')
 
   // The server agrees (it recomputes everything)
   const order = await api(page, async (api, id) =>

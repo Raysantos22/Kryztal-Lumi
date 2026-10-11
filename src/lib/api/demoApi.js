@@ -15,7 +15,7 @@ const migrationFiles = import.meta.glob('../../../supabase/migrations/*.sql', {
   eager: true,
 })
 
-const DB_NAME = 'idb://kryztal-lumi-demo-v2'
+const DB_NAME = 'idb://kryztal-lumi-demo-v3'
 const DEMO_ADMIN_ID = 'dddddddd-0000-4000-8000-000000000001'
 const SESSION_KEY = 'kl-demo-session'
 
@@ -173,6 +173,13 @@ export async function createOrder(payload) {
     `insert into public.notifications_log (order_id, channel, kind, recipient, status, error)
      select $1, 'email', 'owner_new_order', notify_email, 'skipped', 'Demo mode — no email actually sent'
        from public.store_private where id = 1`,
+    [order.id],
+  )
+  // …and the customer's order confirmation, if they gave an email.
+  await q(
+    `insert into public.notifications_log (order_id, channel, kind, recipient, status, error)
+     select id, 'email', 'order_received', customer_email, 'skipped', 'Demo mode — no email actually sent'
+       from public.orders where id = $1 and customer_email is not null`,
     [order.id],
   )
   return order

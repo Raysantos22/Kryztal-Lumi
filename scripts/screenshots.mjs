@@ -19,7 +19,7 @@ const only = args.find((a) => !a.startsWith('--'))?.split(',')
 mkdirSync('screenshots', { recursive: true })
 const browser = await chromium.launch()
 
-// One order (GCash, awaiting payment) and one shipped COD order to show the
+// One new COD order and one shipped COD order to show the
 // order pages in their interesting states.
 async function seedOrders(page) {
   await page.goto(`${BASE}/shop`)
@@ -32,13 +32,13 @@ async function seedOrders(page) {
       name: 'Maria Santos', phone: '0917 123 4567', email: 'maria@example.com', address_line: '12 Sampaguita St.',
       barangay: 'San Antonio', city: 'Pasig City', province: 'Metro Manila', zip: '1600', landmark: 'Near the chapel',
     }
-    const gcash = await api.createOrder({ items: [{ product_id: p.id, quantity: 2 }], customer: { ...customer, phone: '0917 555 0101' }, payment_method: 'gcash' })
+    const placed = await api.createOrder({ items: [{ product_id: p.id, quantity: 2 }], customer: { ...customer, phone: '0917 555 0101' }, payment_method: 'cod' })
     const cod = await api.createOrder({ items: [{ product_id: p.id, quantity: 1 }], customer: { ...customer, phone: '0917 555 0202' }, payment_method: 'cod' })
     await api.signInWithPassword('admin@demo.test', 'demo1234')
     await api.setOrderStatus(cod.id, 'confirmed')
     await api.setOrderStatus(cod.id, 'shipped', { courier: 'J&T Express', trackingNo: 'JT0123456789' })
     await api.signOut()
-    return { gcash: gcash.order_no, cod: cod.order_no }
+    return { placed: placed.order_no, cod: cod.order_no }
   })
 }
 
@@ -58,7 +58,7 @@ const PAGES = [
       await p.getByLabel('Province').selectOption('Cebu')
       await p.getByLabel('GCash').check()
     } },
-  { name: 'order-placed', path: `/order/${orders.gcash}`, session: [orders.gcash, '0917 555 0101'] },
+  { name: 'order-placed', path: `/order/${orders.placed}`, session: [orders.placed, '0917 555 0101'] },
   { name: 'track', path: `/track?order=${orders.cod}`, action: async (p) => {
       await p.getByLabel('Mobile number').fill('0917 555 0202')
       await p.getByRole('button', { name: 'Find order' }).click()

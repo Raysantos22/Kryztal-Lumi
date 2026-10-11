@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { CUSTOMER, PRODUCT_ID, api, bagButton, checkout, expectNoHorizontalScroll, orderNow, visible, waitForApp, watchErrors } from './helpers.js'
+import { PRODUCT_ID, api, bagButton, checkout, enableGcash, expectNoHorizontalScroll, orderNow, quickOrder, toCheckoutViaBag, visible, waitForApp, watchErrors } from './helpers.js'
 
 test('every public page renders without errors or horizontal scroll', async ({ page }) => {
   const errors = watchErrors(page)
@@ -87,14 +87,16 @@ test('Order now → COD checkout → order placed → track with another phone f
   expect(errors).toEqual([])
 })
 
-test('bag drawer + GCash checkout to Cebu, then the customer adds the reference', async ({ page }) => {
+test('bag drawer + GCash checkout to Cebu (when GCash is switched on), then the customer adds the reference', async ({ page }) => {
   const errors = watchErrors(page)
+  await enableGcash(page)
   await page.goto('/product/crystal-blush')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'Increase quantity' }).click()
   await page.getByRole('button', { name: 'Add to bag' }).click()
   const drawer = page.getByRole('dialog', { name: 'Your bag' })
   await expect(drawer).toBeVisible()
+  await expect(drawer.getByTestId('bag-subtotal')).toHaveText('₱399')
+  await drawer.getByRole('button', { name: 'Increase quantity of Crystal Blush' }).click()
   await expect(drawer.getByTestId('bag-subtotal')).toHaveText('₱798')
   await drawer.getByRole('button', { name: 'Increase quantity of Crystal Blush' }).click()
   await expect(drawer.getByTestId('bag-subtotal')).toHaveText('₱1,197')
@@ -125,38 +127,35 @@ test('bag drawer + GCash checkout to Cebu, then the customer adds the reference'
   expect(errors).toEqual([])
 })
 
-test('checkout validation, unlisted province pays the highest fee, and the per-phone order cap', async ({ page }) => {
+test('cash on delivery only by default; order form validation, unlisted province and the per-phone cap', async ({ page }) => {
+  // Checkout offers only cash on delivery
+  await toCheckoutViaBag(page)
+  await expect(page.getByRole('radio', { name: /Cash on delivery/ })).toBeChecked()
+  await expect(page.getByRole('radio', { name: /GCash/ })).toHaveCount(0)
+
   await page.goto('/')
   await waitForApp(page)
-  await page.getByRole('button', { name: 'Order now' }).first().click()
-  await page.getByRole('button', { name: /^Place order/ }).click()
-  await expect(page.getByText('Please enter your full name.')).toBeVisible()
-  await expect(page.getByText(/valid mobile number/)).toBeVisible()
-  await expect(page.getByText('Please choose your province.')).toBeVisible()
-  await expect(page.getByText('Please choose how you want to pay.')).toBeVisible()
-  await expect(page.getByLabel('Full name')).toBeFocused()
+  await page.getByRole('button', { name: /^Order now/ }).first().click()
+  const form = page.getByTestId('order-form')
+  await form.getByRole('button', { name: /^Place order/ }).click()
+  await expect(form.getByText('Please enter your full name.')).toBeVisible()
+  await expect(form.getByText(/valid mobile number/)).toBeVisible()
+  await expect(form.getByText('Please choose your province.')).toBeVisible()
+  await expect(form.getByLabel('Full Name')).toBeFocused()
+  await form.getByLabel('Email').fill('not-an-email')
+  await form.getByRole('button', { name: /^Place order/ }).click()
+  await expect(form.getByText('Please check your email address.')).toBeVisible()
 
-  await page.getByLabel('Province', { exact: true }).selectOption('__other')
-  await page.getByLabel('Province name').fill('Overseas test')
-  await expect(page.getByTestId('shipping-zone')).toContainText('Outside our listed areas')
-  await expect(page.getByTestId('checkout-total')).toHaveText('₱569')
+  await form.getByLabel('Province').selectOption('__other')
+  await form.getByLabel('Province name').fill('Overseas test')
+  await expect(page.getByTestId('order-form-shipping')).toHaveText('₱170')
+  await expect(page.getByTestId('order-form-total')).toHaveText('₱569')
 
   // Three unconfirmed orders per phone, the fourth is refused by the database
+  for (let i = 0; i < 3; i++) await orderNow(page, { phone: '0918 111 2222' })
   await page.goto('/')
-  for (let i = 0; i < 3; i++) {
-    await orderNow(page, { phone: '0918 111 2222' })
-  }
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Order now' }).first().click()
-  await page.getByLabel('Full name').fill(CUSTOMER.name)
-  await page.getByLabel('Mobile number').fill('09181112222')
-  await page.getByLabel('House / unit no. and street').fill(CUSTOMER.address)
-  await page.getByLabel('Barangay').fill(CUSTOMER.barangay)
-  await page.getByLabel('City / municipality').fill(CUSTOMER.city)
-  await page.getByLabel('Province', { exact: true }).selectOption('Metro Manila')
-  await page.getByRole('radio', { name: /Cash on delivery/ }).check()
-  await page.getByRole('button', { name: /^Place order/ }).click()
-  await expect(page.getByRole('alert').filter({ hasText: 'already have 3 orders' })).toBeVisible()
+  await waitForApp(page)
+  await quickOrder(page, { phone: '09181112222', expectError: 'already have 3 orders' })
 })
 
 test('low stock and sold out are shown and enforced', async ({ page }) => {
@@ -170,8 +169,9 @@ test('low stock and sold out are shown and enforced', async ({ page }) => {
 
   await page.goto('/product/crystal-blush')
   await expect(page.getByTestId('badge-low-stock')).toHaveText('Only 2 left')
-  await page.getByRole('button', { name: 'Increase quantity' }).click()
-  await expect(page.getByRole('button', { name: 'Increase quantity' })).toBeDisabled()
+  const form = page.getByTestId('order-form')
+  await form.getByRole('button', { name: 'Increase quantity' }).click()
+  await expect(form.getByRole('button', { name: 'Increase quantity' })).toBeDisabled()
 
   // Another shopper buys both while this bag still has 2
   await page.getByRole('button', { name: 'Add to bag' }).click()

@@ -14,31 +14,41 @@ import { json, preflight } from '../_shared/http.ts'
 import { adminClient } from '../_shared/supabase.ts'
 import { loadOrder, validateOrderPayload, type OrderPayload } from '../_shared/orders.ts'
 import { notify } from '../_shared/notifications/index.ts'
-import { newOrderOwnerMessage } from '../_shared/notifications/templates.ts'
+import { newOrderOwnerMessage, orderReceivedMessage } from '../_shared/notifications/templates.ts'
 
 const FRIENDLY = new Set(['invalid_input', 'invalid_items', 'out_of_stock', 'below_minimum', 'too_many_pending', 'not_found'])
 
+type Db = ReturnType<typeof adminClient>
+type Loaded = NonNullable<Awaited<ReturnType<typeof loadOrder>>>
+
+async function log(db: Db, orderId: string, kind: string, results: Awaited<ReturnType<typeof notify>>) {
+  if (!results.length) return
+  await db.from('notifications_log').insert(
+    results.map((r) => ({ order_id: orderId, channel: r.channel, kind, recipient: r.recipient, status: r.status, error: r.error ?? null })),
+  )
+}
+
+// Email the customer their order confirmation straight away, if they gave
+// an email (best effort, logged).
+async function notifyCustomer(db: Db, orderId: string, loaded: Loaded) {
+  if (!loaded.order.customer.email) return
+  const message = orderReceivedMessage(loaded.order, loaded.store, Deno.env.get('SITE_URL') || undefined)
+  const results = await notify(
+    { name: loaded.order.customer.name, email: loaded.order.customer.email, phone: null },
+    message,
+    { skipChannels: new Set(['sms']) },
+  )
+  await log(db, orderId, 'order_received', results)
+}
+
 // Email the owner about the new order (best effort, logged).
-async function notifyOwner(db: ReturnType<typeof adminClient>, orderId: string) {
-  const loaded = await loadOrder(db, orderId)
-  if (!loaded) return
+async function notifyOwner(db: Db, orderId: string, loaded: Loaded) {
   const ownerEmail = loaded.notifyEmail || Deno.env.get('OWNER_NOTIFY_EMAIL') || null
   const ownerPhone = Deno.env.get('OWNER_NOTIFY_PHONE') || null
   const siteUrl = Deno.env.get('SITE_URL')
   const message = newOrderOwnerMessage(loaded.order, loaded.store, siteUrl ? `${siteUrl.replace(/\/$/, '')}/admin/orders/${orderId}` : undefined)
   const results = await notify({ name: loaded.store.store_name, email: ownerEmail, phone: ownerPhone }, message)
-  if (results.length) {
-    await db.from('notifications_log').insert(
-      results.map((r) => ({
-        order_id: orderId,
-        channel: r.channel,
-        kind: 'owner_new_order',
-        recipient: r.recipient,
-        status: r.status,
-        error: r.error ?? null,
-      })),
-    )
-  }
+  await log(db, orderId, 'owner_new_order', results)
 }
 
 Deno.serve(async (req) => {
@@ -78,9 +88,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    await notifyOwner(db, data.id)
+    const loaded = await loadOrder(db, data.id)
+    if (loaded) {
+      await Promise.allSettled([notifyOwner(db, data.id, loaded), notifyCustomer(db, data.id, loaded)])
+    }
   } catch (e) {
-    console.error('owner notification failed', e)
+    console.error('order notifications failed', e)
   }
 
   return json({ order: data }, 201)

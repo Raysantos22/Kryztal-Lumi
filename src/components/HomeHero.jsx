@@ -18,7 +18,7 @@ const PROMISES = [
   },
   { title: 'Buildable, never heavy', body: 'One tap for a fresh, barely-there glow. A few more for a deeper flush. A little goes a long way.' },
   { title: 'Cruelty-free, pocket-sized', body: 'Never tested on animals. A slim 53 × 53 mm compact made for touch-ups on the go.' },
-  { title: 'Pay when it arrives', body: 'Cash on delivery or GCash, shipped to your door anywhere in the Philippines.' },
+  { title: 'Pay when it arrives', body: 'Cash on delivery: fill in the form, then pay the rider when your parcel reaches your door.' },
 ]
 
 function Promises() {

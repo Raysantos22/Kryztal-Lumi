@@ -9,6 +9,7 @@ import { Sparkle } from '../components/icons.jsx'
 import ProductCard from '../components/ProductCard.jsx'
 import { DesktopHero, MobileCollection, MobileHero } from '../components/HomeHero.jsx'
 import FeatureBanners from '../components/FeatureBanners.jsx'
+import OrderForm, { BenefitList, PriceBlock } from '../components/OrderForm.jsx'
 import { CommunitySlideshow } from '../components/Community.jsx'
 import Shop from './Shop.jsx'
 
@@ -37,8 +38,8 @@ export default function Home() {
   useSeo({
     title: !isLaunch ? 'Shop' : featured ? `${featured.name} — ${featured.subtitle || 'Kryztal Lumi'}` : null,
     description: isLaunch
-      ? `${featured.name} by Kryztal Lumi: ${featured.subtitle?.toLowerCase() || ''}. ${formatMoney(min)} · cash on delivery or GCash · ships nationwide.`
-      : 'Kryztal Lumi beauty — shop online, cash on delivery or GCash, shipped nationwide.',
+      ? `${featured.name} by Kryztal Lumi: ${featured.subtitle?.toLowerCase() || ''}. ${formatMoney(min)} · cash on delivery · fast nationwide shipping · ships nationwide.`
+      : 'Kryztal Lumi beauty — order online, cash on delivery, fast nationwide shipping.',
   })
 
   if (!isLaunch) return <Shop />
@@ -49,6 +50,38 @@ export default function Home() {
       <MobileHero featured={featured} settings={settings} />
       <MobileCollection products={products} categories={categories} settings={settings} />
       <FeatureBanners product={featured} />
+
+      {/* ------------------------------------------------------- Order form */}
+      <section id="order" className="scroll-mt-20 bg-blush-50 py-14 sm:py-20" aria-labelledby="order-title">
+        <div className="container-page grid gap-10 lg:grid-cols-[1fr_1.1fr] lg:items-start">
+          <div className="lg:sticky lg:top-28">
+            <img
+              src="/images/product-box.webp"
+              alt={`${featured.name} compact`}
+              width="1200"
+              height="1200"
+              loading="lazy"
+              className="mx-auto w-full max-w-md rounded-sm shadow-xl shadow-rose-900/10"
+            />
+          </div>
+          <div className="mx-auto w-full max-w-xl lg:mx-0">
+            <Eyebrow>Order now · {settings?.cod_enabled ? 'Cash on delivery' : 'Fast shipping'}</Eyebrow>
+            <h2 id="order-title" className="mt-3 font-sans text-3xl leading-tight font-bold tracking-tight text-noir sm:text-4xl">
+              {featured.name}
+            </h2>
+            {featured.subtitle && <p className="mt-1 text-muted">{featured.subtitle}</p>}
+            <PriceBlock price={min} compareAt={featured.compare_at_price} className="mt-4" />
+            {featured.highlights?.length > 0 && (
+              <div className="mt-4 border-t border-rose-200 pt-4">
+                <BenefitList items={featured.highlights} />
+              </div>
+            )}
+            <div className="mt-6">
+              <OrderForm product={featured} idPrefix="home" />
+            </div>
+          </div>
+        </div>
+      </section>
       <CommunitySlideshow product={featured} settings={settings} />
 
       {/* -------------------------------------------------------- Ingredients */}
@@ -133,7 +166,7 @@ export default function Home() {
             Find your <em className="text-foil">glow</em>
           </h2>
           <p className="mt-4 max-w-md text-rose-100/80">
-            {featured.name} · {formatMoney(min)}. Pay cash on delivery or with GCash, delivered anywhere in the Philippines.
+            {featured.name} · {formatMoney(min)}. Cash on delivery, delivered fast anywhere in the Philippines.
           </p>
           <OrderNowButton product={featured} className="btn-light mt-9 px-10" />
         </div>
