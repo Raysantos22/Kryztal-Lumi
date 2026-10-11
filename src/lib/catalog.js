@@ -71,3 +71,9 @@ export function shippingFee(settings, zone, subtotal) {
   if (settings?.free_shipping_mode === 'threshold' && subtotal >= Number(settings.free_shipping_threshold)) return 0
   return Number(zone.fee)
 }
+
+// "1.8 g / 0.063 oz" → "1.8 g" (shown as a tag on product photos)
+export function sizeTag(product) {
+  const spec = (product?.specs || []).find((s) => /net\s*w|size|volume/i.test(s.label))
+  return spec ? spec.value.split('/')[0].trim() : null
+}

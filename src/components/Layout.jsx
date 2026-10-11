@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Menu, MessageCircle, ShoppingBag, X, Truck, Banknote, Smartphone } from 'lucide-react'
+import { Menu, MessageCircle, Package, Search, ShoppingBag, X, Truck, Banknote, Smartphone } from 'lucide-react'
 import { SOCIAL_ICONS } from './icons.jsx'
 import { useStore } from '../lib/StoreContext.jsx'
 import { useBag } from '../lib/BagContext.jsx'
@@ -9,16 +9,14 @@ import { messengerLink, socialLinks } from '../lib/format.js'
 import { ErrorBox, Loading } from './ui.jsx'
 import BagDrawer from './BagDrawer.jsx'
 
-const NAV_LEFT = [
+const NAV_MAIN = [
+  { to: '/', label: 'Home', end: true },
   { to: '/shop', label: 'Shop' },
   { to: '/about', label: 'About' },
   { to: '/faq', label: 'FAQ' },
-]
-const NAV_RIGHT = [
-  { to: '/track', label: 'Track order' },
   { to: '/contact', label: 'Contact' },
 ]
-const NAV_ALL = [{ to: '/', label: 'Home', end: true }, ...NAV_LEFT, ...NAV_RIGHT, { to: '/shipping-returns', label: 'Shipping & Returns' }]
+const NAV_ALL = [...NAV_MAIN, { to: '/track', label: 'Track order' }, { to: '/shipping-returns', label: 'Shipping & Returns' }]
 
 export function DemoBanner() {
   if (!DEMO_MODE) return null
@@ -53,19 +51,23 @@ export function Logo({ className = 'h-12 sm:h-14 lg:h-16', eager = true }) {
   )
 }
 
-function BagButton() {
+function BagButton({ variant = 'circle' }) {
   const { count, setOpen } = useBag()
+  const shape =
+    variant === 'circle'
+      ? 'h-11 w-11 rounded-full bg-rose-500 text-white shadow-sm shadow-rose-900/20 hover:bg-rose-600'
+      : 'h-11 w-11 bg-blush-100 text-noir hover:bg-blush-200'
   return (
     <button
       type="button"
       onClick={() => setOpen(true)}
-      className="relative inline-flex h-11 w-11 items-center justify-center text-noir transition hover:text-rose-600"
+      className={`relative inline-flex items-center justify-center transition ${shape}`}
       aria-label={`Open bag, ${count} item${count === 1 ? '' : 's'}`}
       data-testid="bag-button"
     >
       <ShoppingBag className="h-5 w-5" strokeWidth={1.6} />
       {count > 0 && (
-        <span className="absolute top-1 right-0.5 flex h-[1.1rem] min-w-[1.1rem] items-center justify-center rounded-full bg-rose-600 px-1 text-[0.6rem] font-medium text-white">
+        <span className="absolute -top-1 -right-1 flex h-[1.15rem] min-w-[1.15rem] items-center justify-center rounded-full bg-noir px-1 text-[0.6rem] font-medium text-white ring-2 ring-ivory">
           {count}
         </span>
       )}
@@ -93,50 +95,52 @@ function Header() {
   }, [open])
 
   const linkClass = ({ isActive }) =>
-    `text-[0.7rem] tracking-[0.28em] uppercase transition hover:text-rose-600 ${isActive ? 'text-rose-700' : 'text-noir'}`
+    `relative py-1 text-[0.95rem] transition hover:text-rose-600 ${
+      isActive ? 'text-noir after:absolute after:inset-x-0 after:-bottom-0.5 after:h-px after:bg-rose-500' : 'text-ink/80'
+    }`
+  const iconLink = 'inline-flex h-11 w-11 items-center justify-center text-noir transition hover:text-rose-600'
 
   return (
     <header className="sticky top-0 z-40 border-b border-rose-100/70 bg-ivory/90 backdrop-blur-md">
-      {/* Desktop: nav | centred logo | nav + bag */}
-      <div className="container-page hidden h-24 grid-cols-[1fr_auto_1fr] items-center gap-6 lg:grid">
-        <nav className="flex items-center gap-9" aria-label="Main">
-          {NAV_LEFT.map((n) => (
-            <NavLink key={n.to} to={n.to} className={linkClass}>
+      {/* Desktop: logo | nav | icons */}
+      <div className="container-page hidden h-20 grid-cols-[1fr_auto_1fr] items-center gap-6 lg:grid">
+        <Logo className="h-14" />
+        <nav className="flex items-center gap-10" aria-label="Main">
+          {NAV_MAIN.map((n) => (
+            <NavLink key={n.to} to={n.to} end={n.end} className={linkClass}>
               {n.label}
             </NavLink>
           ))}
         </nav>
-        <Logo />
-        <div className="flex items-center justify-end gap-8">
-          <nav className="flex items-center gap-8" aria-label="Secondary">
-            {NAV_RIGHT.map((n) => (
-              <NavLink key={n.to} to={n.to} className={linkClass}>
-                {n.label}
-              </NavLink>
-            ))}
-          </nav>
-          <BagButton />
+        <div className="flex items-center justify-end gap-2">
+          <Link to="/shop?search=1" className={iconLink} aria-label="Search products">
+            <Search className="h-5 w-5" strokeWidth={1.6} />
+          </Link>
+          <NavLink to="/track" className={iconLink} aria-label="Track order" title="Track order">
+            <Package className="h-5 w-5" strokeWidth={1.6} />
+          </NavLink>
+          <span className="ml-2">
+            <BagButton variant="circle" />
+          </span>
         </div>
       </div>
 
-      {/* Phones + portrait tablets: menu | logo | bag */}
-      <div className="container-page grid h-16 grid-cols-[auto_1fr_auto] items-center sm:h-20 lg:hidden">
-        <button
-          ref={menuButton}
-          type="button"
-          className="-ml-2 inline-flex h-11 w-11 items-center justify-center text-noir"
-          onClick={() => setOpen((o) => !o)}
-          aria-expanded={open}
-          aria-controls="mobile-nav"
-          aria-label={open ? 'Close menu' : 'Open menu'}
-        >
-          {open ? <X className="h-6 w-6" strokeWidth={1.5} /> : <Menu className="h-6 w-6" strokeWidth={1.5} />}
-        </button>
-        <div className="flex justify-center">
-          <Logo className="h-11 sm:h-14" />
-        </div>
-        <div className="-mr-2">
-          <BagButton />
+      {/* Phones + portrait tablets: logo | bag + menu squares */}
+      <div className="container-page flex h-16 items-center justify-between sm:h-20 lg:hidden">
+        <Logo className="h-11 sm:h-14" />
+        <div className="flex items-center gap-2">
+          <BagButton variant="square" />
+          <button
+            ref={menuButton}
+            type="button"
+            className="inline-flex h-11 w-11 items-center justify-center bg-blush-100 text-noir transition hover:bg-blush-200"
+            onClick={() => setOpen((o) => !o)}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+          >
+            {open ? <X className="h-5 w-5" strokeWidth={1.6} /> : <Menu className="h-5 w-5" strokeWidth={1.6} />}
+          </button>
         </div>
       </div>
       {open && (
@@ -236,7 +240,7 @@ function Footer({ settings }) {
 // Meta retired the embedded Messenger Chat Plugin in 2024, so the widget is
 // a floating button that opens the Page's conversation via m.me. Hidden
 // until a Messenger username is set in Admin → Settings.
-export function MessengerButton({ settings }) {
+export function MessengerButton({ settings, raised = false }) {
   const href = messengerLink(settings)
   if (!href) return null
   return (
@@ -244,7 +248,7 @@ export function MessengerButton({ settings }) {
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="fixed right-4 bottom-4 z-30 inline-flex items-center gap-2 rounded-full bg-noir px-4 py-3 text-sm text-ivory shadow-lg shadow-rose-900/25 ring-1 ring-rose-300/40 transition hover:scale-105 hover:bg-rose-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-noir sm:right-6 sm:bottom-6"
+      className={`fixed right-4 z-30 ${raised ? 'bottom-24 md:bottom-6' : 'bottom-4'} inline-flex items-center gap-2 rounded-full bg-noir px-4 py-3 text-sm text-ivory shadow-lg shadow-rose-900/25 ring-1 ring-rose-300/40 transition hover:scale-105 hover:bg-rose-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-noir sm:right-6 sm:bottom-6`}
       aria-label="Message us on Facebook Messenger"
     >
       <MessageCircle className="h-5 w-5" aria-hidden="true" />
@@ -280,7 +284,7 @@ export default function Layout() {
         )}
       </main>
       <Footer settings={settings} />
-      <MessengerButton settings={settings} />
+      <MessengerButton settings={settings} raised={pathname.startsWith('/product/')} />
       <BagDrawer />
     </div>
   )

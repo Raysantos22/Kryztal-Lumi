@@ -38,6 +38,14 @@ What I still need from you. ✏️ = you can change it yourself in **/admin** on
 - [ ] ✏️ **Product wording.** I described the colour change as "develops on contact with your skin and
       adapts to your undertone". Please check that it matches what your supplier says. Avoid medical or
       "100% natural" claims unless you can back them up.
+- [ ] **Supplier details.** Alibaba blocks automated access to your supplier page, so I couldn't read
+      the full spec sheet. The listing title says *high pigment · vegan · custom logo*. I have **not**
+      added "vegan" or "high pigment" to the site yet. Please paste the product description and specs, or
+      send screenshots, and confirm the claims (vegan certification, finish, wear time, skin types,
+      shelf life), and I'll add them to the product page.
+- [ ] ✏️ **Lifestyle / model photos.** The new design looks best with real photos (e.g. a face wearing the
+      blush, hands holding the compact). Upload them in Admin → Products; the first photo becomes the main
+      image.
 - [ ] ✏️ **About text** (Admin → Settings → Store). The current text is a placeholder story.
 - [ ] ✏️ **FAQ answers** (Admin → Settings → FAQ). In particular "How long is delivery?" should match
       your fees.

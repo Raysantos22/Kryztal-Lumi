@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { Search } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { useStore } from '../lib/StoreContext.jsx'
 import { useSeo } from '../lib/useSeo.js'
@@ -18,6 +19,8 @@ export default function Shop() {
   const [params, setParams] = useSearchParams()
   const category = params.get('category') || ''
   const sort = SORTS[params.get('sort')] ? params.get('sort') : 'featured'
+  const q = params.get('q') || ''
+  const showSearch = params.has('search') || !!q
 
   useSeo({
     title: 'Shop',
@@ -30,8 +33,9 @@ export default function Shop() {
     const cat = categories.find((c) => c.slug === category)
     return products
       .filter((p) => !cat || p.category_id === cat.id)
+      .filter((p) => !q.trim() || `${p.name} ${p.subtitle || ''} ${p.description || ''}`.toLowerCase().includes(q.trim().toLowerCase()))
       .sort((a, b) => Number(availableStock(a) <= 0) - Number(availableStock(b) <= 0) || SORTS[sort].fn(a, b))
-  }, [products, categories, category, sort])
+  }, [products, categories, category, sort, q])
 
   const update = (key, value) => {
     const next = new URLSearchParams(params)
@@ -46,6 +50,20 @@ export default function Shop() {
         Crystal-clear beauty, made to glow on every skin tone.
       </PageHeader>
       <div className="container-page pt-8">
+        {showSearch && (
+          <label className="mb-6 flex items-center gap-3 border-b border-noir pb-2">
+            <Search className="h-5 w-5 text-muted" aria-hidden="true" />
+            <span className="sr-only">Search products</span>
+            <input
+              type="search"
+              autoFocus
+              value={q}
+              onChange={(e) => update('q', e.target.value)}
+              placeholder="Search products…"
+              className="w-full bg-transparent py-2 text-lg text-noir placeholder:text-stone-400 focus:outline-none"
+            />
+          </label>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-rose-100 pb-5">
           {usedCategories.length > 0 ? (
             <nav className="-mx-1 flex flex-wrap gap-2" aria-label="Categories">
@@ -82,7 +100,7 @@ export default function Shop() {
 
         {list.length === 0 ? (
           <div className="mt-10">
-            <EmptyState>No products here yet — check back soon.</EmptyState>
+            <EmptyState>{q ? `No products match “${q}”.` : 'No products here yet — check back soon.'}</EmptyState>
           </div>
         ) : (
           <div

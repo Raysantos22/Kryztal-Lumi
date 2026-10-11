@@ -191,3 +191,22 @@
 @utility animate-fade {
   animation: kl-fade-in 0.2s ease-out;
 }
+
+/* Faint "graph paper" lines behind the desktop hero */
+@utility bg-grid {
+  background-image:
+    linear-gradient(to right, rgb(184 112 107 / 0.09) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(184 112 107 / 0.09) 1px, transparent 1px);
+  background-size: 120px 120px;
+  background-position: -1px -1px;
+}
+/* Highlighter-pen block behind a headline word */
+@utility marker {
+  background: linear-gradient(100deg, rgb(249 208 214 / 0) 0%, #f9d0d6 14%, #f3cfc8 60%, #f6dcd5 100%);
+}
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

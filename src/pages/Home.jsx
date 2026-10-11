@@ -1,8 +1,7 @@
 import { Link } from 'react-router-dom'
-import { Banknote, Leaf, Layers, Sun, Smartphone, Truck, Package } from 'lucide-react'
+import { Leaf, Layers, Sun, Package } from 'lucide-react'
 import { useStore } from '../lib/StoreContext.jsx'
 import { useOrderNow } from '../lib/useOrderNow.js'
-import { useParallax } from '../lib/useParallax.js'
 import { useSeo } from '../lib/useSeo.js'
 import { availableStock, priceRange } from '../lib/catalog.js'
 import { formatMoney, socialLinks } from '../lib/format.js'
@@ -10,11 +9,8 @@ import { Eyebrow } from '../components/ui.jsx'
 import { Sparkle } from '../components/icons.jsx'
 import { SocialLinks } from '../components/Layout.jsx'
 import ProductCard from '../components/ProductCard.jsx'
+import { DesktopHero, MobileCollection, MobileHero } from '../components/HomeHero.jsx'
 import Shop from './Shop.jsx'
-
-function Twinkle({ className, delay = '0s' }) {
-  return <Sparkle className={`animate-twinkle absolute text-white ${className}`} style={{ animationDelay: delay }} />
-}
 
 function OrderNowButton({ product, className = 'btn-solid', children = 'Order now' }) {
   const orderNow = useOrderNow(product)
@@ -38,17 +34,12 @@ const SKIN_TONES = [
 ]
 
 export default function Home() {
-  const { featured, settings, products } = useStore()
-  const visualRef = useParallax(0.12, { maxScroll: 900 })
+  const { featured, settings, products, categories } = useStore()
 
   const { min } = featured ? priceRange(featured) : { min: 0 }
-  const stock = featured ? availableStock(featured) : 0
-  const lowStock = stock > 0 && stock !== Infinity && stock <= (settings?.low_stock_threshold ?? 5)
   const faq = (settings?.faq || []).slice(0, 4)
   const others = products.filter((p) => p.id !== featured?.id)
   const hasSocials = socialLinks(settings).length > 0
-  const [titleFirst, ...titleWords] = (featured?.name || '').split(' ')
-  const titleRest = titleWords.join(' ')
 
   const isLaunch = featured?.slug === LAUNCH_SLUG
   useSeo({
@@ -62,75 +53,9 @@ export default function Home() {
 
   return (
     <div className="bg-ivory">
-      {/* ---------------------------------------------------------------- Hero */}
-      <section className="relative overflow-hidden bg-blush-200">
-        <div className="glow-blush absolute -top-1/4 left-1/2 h-[120%] w-[120%] -translate-x-1/2 opacity-90 split:left-[70%] split:w-[80%]" aria-hidden="true" />
-        <div className="sparkle-dots absolute inset-0 opacity-50" aria-hidden="true" />
-        <div className="container-page relative grid min-h-[calc(100svh-6rem)] content-center items-center gap-4 py-10 sm:gap-8 split:min-h-[calc(100svh-8rem)] split:grid-cols-[1.05fr_1fr] split:py-12">
-          <div className="text-center split:text-left">
-            <Eyebrow className="justify-center split:justify-start">{featured.badge_new ? 'New · ' : ''}Tone-adapt blush</Eyebrow>
-            <h1 className="mt-4 font-display leading-[0.88] font-medium text-noir">
-              {titleRest ? (
-                <>
-                  <span className="block text-[3.6rem] sm:text-[5.5rem] lg:text-[6.5rem]">{titleFirst}</span>
-                  <span className="text-foil block text-[4.2rem] italic sm:text-[6.4rem] lg:text-[7.6rem]">{titleRest}</span>
-                </>
-              ) : (
-                <span className="text-foil block text-[4.2rem] italic sm:text-[6.4rem] lg:text-[7.6rem]">{titleFirst}</span>
-              )}
-            </h1>
-            <p className="mx-auto mt-5 max-w-md text-lg leading-relaxed text-ink/80 split:mx-0">
-              {settings?.tagline ? <span className="font-display text-2xl text-noir italic">{settings.tagline} </span> : null}
-              <span className="block">A deep crystal in the compact that blooms into your own rosy flush.</span>
-            </p>
-            <div className="mt-7 flex flex-wrap items-center justify-center gap-x-5 gap-y-4 split:justify-start">
-              <p className="font-display text-4xl text-noir tabular-nums" data-testid="hero-price">
-                {formatMoney(min)}
-              </p>
-              <OrderNowButton product={featured} />
-              <a href="#how-it-works" className="btn-outline hidden sm:inline-flex">
-                How it works
-              </a>
-            </div>
-            {lowStock && <p className="mt-4 text-sm text-rose-800">Only {stock} left in this batch</p>}
-            <ul className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 text-[0.68rem] tracking-[0.18em] text-ink/70 uppercase split:justify-start">
-              {settings?.cod_enabled && <li className="flex items-center gap-1.5"><Banknote className="h-3.5 w-3.5" aria-hidden="true" /> Cash on delivery</li>}
-              {settings?.gcash_enabled && <li className="flex items-center gap-1.5"><Smartphone className="h-3.5 w-3.5" aria-hidden="true" /> GCash</li>}
-              <li className="flex items-center gap-1.5"><Truck className="h-3.5 w-3.5" aria-hidden="true" /> Ships nationwide</li>
-            </ul>
-          </div>
-
-          {/* Visual: the box floats in a glow; the pan peeks out below */}
-          <div className="relative mx-auto w-full max-w-[300px] sm:max-w-[420px] split:max-w-[540px]">
-            <div ref={visualRef} className="will-change-transform">
-              <div className="relative aspect-square">
-                <div className="absolute inset-[6%] rounded-full bg-white/60 blur-3xl" aria-hidden="true" />
-                <picture>
-                  <source media="(max-width: 640px)" srcSet="/images/hero-box-520.webp" />
-                  <img
-                    src="/images/hero-box.webp"
-                    alt={`${featured.name} compact: black box with rose-gold Kryztal Lumi foil logo`}
-                    width="900"
-                    height="900"
-                    fetchPriority="high"
-                    className="animate-float relative h-full w-full object-contain drop-shadow-[0_30px_40px_rgba(90,42,51,0.35)]"
-                  />
-                </picture>
-                <img
-                  src="/images/pan-transparent.webp"
-                  alt=""
-                  width="700"
-                  height="700"
-                  className="absolute -bottom-[8%] -left-[8%] w-[46%] drop-shadow-[0_18px_24px_rgba(90,42,51,0.3)]"
-                />
-                <Twinkle className="top-[4%] right-[10%] h-7 w-7" />
-                <Twinkle className="top-[38%] -right-[2%] h-4 w-4" delay="1.1s" />
-                <Twinkle className="bottom-[16%] left-[38%] h-5 w-5" delay="2.2s" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <DesktopHero featured={featured} settings={settings} products={products} />
+      <MobileHero featured={featured} settings={settings} />
+      <MobileCollection products={products} categories={categories} settings={settings} />
 
       {/* ---------------------------------------------------- How it works */}
       <section id="how-it-works" className="scroll-mt-24 py-16 sm:py-24">
