@@ -89,7 +89,8 @@ function PrivateSettings() {
           e.preventDefault()
           if (email.trim() && !isValidEmail(email)) return setError('Please enter a valid email.')
           run('save', async () => {
-            await api.updatePrivateSettings({ notify_email: email.trim() || null })
+            const updated = await api.updatePrivateSettings({ notify_email: email.trim() || null })
+            priv.setData(updated)
             setSaved(true)
             setTimeout(() => setSaved(false), 2000)
           })

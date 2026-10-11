@@ -215,7 +215,7 @@ function OrderActions({ order: o, onChanged }) {
     <div className="space-y-3" data-testid="order-actions">
       <div className="flex flex-wrap gap-2">
         {canPay && (
-          <button type="button" className="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => setMode('paid')}>
+          <button type="button" className="btn btn-sm bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => setMode('paid')} disabled={!!busy}>
             <CheckCircle2 className="h-4 w-4" /> {o.status === 'cancelled' ? 'Reinstate: GCash paid' : 'Mark GCash paid'}
           </button>
         )}
@@ -230,7 +230,7 @@ function OrderActions({ order: o, onChanged }) {
           </button>
         )}
         {(o.status === 'confirmed' || o.status === 'packed') && (
-          <button type="button" className="btn btn-sm bg-noir text-ivory hover:bg-rose-800" onClick={() => setMode('ship')}>
+          <button type="button" className="btn btn-sm bg-noir text-ivory hover:bg-rose-800" onClick={() => setMode('ship')} disabled={!!busy}>
             <Truck className="h-4 w-4" /> Mark shipped
           </button>
         )}
@@ -240,7 +240,7 @@ function OrderActions({ order: o, onChanged }) {
           </button>
         )}
         {['shipped', 'delivered', 'returned'].includes(o.status) && (
-          <button type="button" className="btn-ghost btn-sm" onClick={() => setMode('tracking')}>
+          <button type="button" className="btn-ghost btn-sm" onClick={() => setMode('tracking')} disabled={!!busy}>
             Edit tracking
           </button>
         )}
@@ -255,7 +255,7 @@ function OrderActions({ order: o, onChanged }) {
           </button>
         )}
         {['new', 'awaiting_payment', 'confirmed', 'packed'].includes(o.status) && (
-          <button type="button" className="btn-danger btn-sm" onClick={() => setMode('cancel')}>
+          <button type="button" className="btn-danger btn-sm" onClick={() => setMode('cancel')} disabled={!!busy}>
             <Ban className="h-4 w-4" /> Cancel order
           </button>
         )}
