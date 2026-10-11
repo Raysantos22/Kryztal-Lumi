@@ -68,6 +68,10 @@
   h3 {
     @apply font-display;
   }
+  /* Cormorant defaults to old-style figures (1 looks like I): use lining ones */
+  h1, h2, h3, .font-display {
+    font-variant-numeric: lining-nums;
+  }
   ::selection {
     @apply bg-blush-300 text-noir;
   }
