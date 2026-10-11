@@ -221,12 +221,11 @@ export function DesktopHero({ featured, settings, products }) {
             />
           ) : (
             <FloatCard
-              to="#how-it-works"
-              onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+              to={`/product/${featured.slug}`}
               image="/images/hero-box-520.webp"
               imageAlt=""
               title="Tone-adapt"
-              line="How it works"
+              line="How to use"
               cta="See how"
               tone="bg-[#f6e4d8]"
             />

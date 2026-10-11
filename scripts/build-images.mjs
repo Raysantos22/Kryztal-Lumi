@@ -12,7 +12,6 @@
 //   og-image.jpg                  1200×630 social share image
 //   images/scene-flatlay.webp     styled flat lay of compacts (stand-in for photography)
 //   images/scene-podium.webp      pans on white podiums (stand-in for photography)
-//   images/closeup-pan|box.webp   portrait close-ups for the two-up image section
 import sharp from 'sharp'
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -286,46 +285,6 @@ async function scenes() {
   await sharp(podium).resize(900).webp({ quality: 80 }).toFile(out('images', 'scene-podium-900.webp'))
 }
 
-// Editorial close-ups for the two-up "big image" section (portrait 1200×1400):
-//   closeup-pan.webp  the blush pan, huge and cropped, on warm grey
-//   closeup-box.webp  the compact standing, cropped at the edges
-// Crop an overlay to the part that falls inside a W×H canvas (sharp can't
-// composite images larger than the base or placed partly outside it).
-async function placeCropped(img, left, top, W, H) {
-  const m = await sharp(img).metadata()
-  const x0 = Math.max(0, -left)
-  const y0 = Math.max(0, -top)
-  const w = Math.min(m.width - x0, W - Math.max(0, left))
-  const h = Math.min(m.height - y0, H - Math.max(0, top))
-  const input = await sharp(img).extract({ left: x0, top: y0, width: w, height: h }).png().toBuffer()
-  return { input, left: Math.max(0, left), top: Math.max(0, top) }
-}
-
-async function closeups() {
-  const CW = 1200
-  const CH = 1400
-  const bg = (a, b) => `<svg xmlns="http://www.w3.org/2000/svg" width="${CW}" height="${CH}"><defs>
-    <radialGradient id="g" cx=".45" cy=".35" r=".9"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient></defs>
-    <rect width="100%" height="100%" fill="url(#g)"/></svg>`
-  const pan = await sharp(Buffer.from(panSvg(1700, { transparent: true }))).png().toBuffer()
-  const panShadow = await withShadow(pan, { blur: 40, dx: 30, dy: 50, opacity: 0.3 })
-  const p = await sharp(Buffer.from(bg('#f4f1ef', '#e4dedb')))
-    .composite([await placeCropped(panShadow, -360, -150, CW, CH)])
-    .png()
-    .toBuffer()
-  await sharp(p).webp({ quality: 82 }).toFile(out('images', 'closeup-pan.webp'))
-  await sharp(p).resize(700).webp({ quality: 80 }).toFile(out('images', 'closeup-pan-700.webp'))
-
-  const box = await sharp(out('images', 'hero-box.webp')).resize(1500).png().toBuffer()
-  const boxShadow = await withShadow(box, { blur: 40, dx: 24, dy: 60, opacity: 0.32 })
-  const b = await sharp(Buffer.from(bg('#fbeef0', '#efd9dc')))
-    .composite([await placeCropped(boxShadow, -150, 140, CW, CH)])
-    .png()
-    .toBuffer()
-  await sharp(b).webp({ quality: 82 }).toFile(out('images', 'closeup-box.webp'))
-  await sharp(b).resize(700).webp({ quality: 80 }).toFile(out('images', 'closeup-box-700.webp'))
-}
-
 const logoPng = await cleanLogo()
 await favicons()
 await productBox(logoPng)
@@ -333,5 +292,4 @@ await pan()
 await mockups()
 await ogImage(logoPng)
 await scenes()
-await closeups()
 console.log('✔ images built')

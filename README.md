@@ -218,7 +218,7 @@ twice. The admin's *Resend email* button forces a resend.
 - the illustrated blush pan
 - crops of the packaging mockup
 - the 1200×630 Open Graph image
-- stand-in "photography" for the home page: a flat lay, a podium scene and two close-ups. Replace them
+- stand-in "photography" for the home page: a flat lay and a podium scene. Replace them
   with real photos when you have them (same file names in `public/images/`).
 
 Product photos the owner uploads go to Supabase Storage.

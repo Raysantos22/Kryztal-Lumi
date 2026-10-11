@@ -1,4 +1,4 @@
-// "Big image" two-up section and the community / reviews slideshow.
+// Community / reviews slideshow (managed in Admin → Reviews).
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react'
@@ -6,59 +6,6 @@ import { api } from '../lib/api/index.js'
 import { useAsync } from '../lib/useAsync.js'
 import { socialLinks } from '../lib/format.js'
 import { Sparkle } from './icons.jsx'
-
-const pill =
-  'inline-flex items-center rounded-full border border-noir bg-white px-8 py-2.5 text-xs font-medium tracking-[0.08em] text-noir uppercase transition hover:bg-noir hover:text-white'
-
-function Tile({ photo, photoSmall, alt, label, cta, to, onClick, testId, dark = false }) {
-  return (
-    <div className="relative aspect-[4/5] overflow-hidden bg-pearl md:aspect-auto md:h-[min(92svh,900px)]" data-testid={testId}>
-      <picture>
-        <source media="(max-width: 767px)" srcSet={photoSmall} />
-        <img src={photo} alt={alt} loading="lazy" className="absolute inset-0 h-full w-full object-cover transition duration-[1.5s] hover:scale-[1.03]" />
-      </picture>
-      {dark && <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" aria-hidden="true" />}
-      <div className="absolute bottom-6 left-6 sm:bottom-8 sm:left-10">
-        <p className={`mb-4 text-sm tracking-[0.04em] uppercase ${dark ? 'text-ivory' : 'text-noir'}`}>{label}</p>
-        {to ? (
-          <Link to={to} className={pill}>
-            {cta}
-          </Link>
-        ) : (
-          <button type="button" onClick={onClick} className={pill}>
-            {cta}
-          </button>
-        )}
-      </div>
-    </div>
-  )
-}
-
-export function BigTiles({ product }) {
-  return (
-    <section className="grid md:grid-cols-2" aria-label={`${product.name} close-ups`}>
-      <Tile
-        testId="tile-product"
-        dark
-        photo="/images/closeup-box.webp"
-        photoSmall="/images/closeup-box-700.webp"
-        alt={`Close-up of the ${product.name} compact with its rose-gold foil logo`}
-        label={`${product.badge_new ? 'New! ' : ''}${product.name}`}
-        cta={`Shop ${product.name}`}
-        to={`/product/${product.slug}`}
-      />
-      <Tile
-        testId="tile-pan"
-        photo="/images/closeup-pan.webp"
-        photoSmall="/images/closeup-pan-700.webp"
-        alt="Close-up of the crystal blush pan with a rose-gold rim"
-        label="The tone-adapt pan"
-        cta="See how it works"
-        onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-      />
-    </section>
-  )
-}
 
 // ---------------------------------------------------------------------------
 // Slideshow

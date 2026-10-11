@@ -9,7 +9,7 @@ import { Sparkle } from '../components/icons.jsx'
 import ProductCard from '../components/ProductCard.jsx'
 import { DesktopHero, MobileCollection, MobileHero } from '../components/HomeHero.jsx'
 import FeatureBanners from '../components/FeatureBanners.jsx'
-import { BigTiles, CommunitySlideshow } from '../components/Community.jsx'
+import { CommunitySlideshow } from '../components/Community.jsx'
 import Shop from './Shop.jsx'
 
 function OrderNowButton({ product, className = 'btn-solid', children = 'Order now' }) {
@@ -25,13 +25,6 @@ function OrderNowButton({ product, className = 'btn-solid', children = 'Order no
 // The launch sections below are written for Crystal Blush. If another product
 // is featured, the home page shows the regular shop instead.
 export const LAUNCH_SLUG = 'crystal-blush'
-
-const SKIN_TONES = [
-  { skin: '#f7dccb', flush: 'rgba(232, 120, 140, 0.45)', label: 'Fair' },
-  { skin: '#e7b996', flush: 'rgba(214, 92, 118, 0.5)', label: 'Light-medium' },
-  { skin: '#c48d66', flush: 'rgba(190, 62, 98, 0.5)', label: 'Morena' },
-  { skin: '#8a5a3f', flush: 'rgba(160, 40, 80, 0.55)', label: 'Deep' },
-]
 
 export default function Home() {
   const { featured, settings, products, categories } = useStore()
@@ -56,58 +49,7 @@ export default function Home() {
       <MobileHero featured={featured} settings={settings} />
       <MobileCollection products={products} categories={categories} settings={settings} />
       <FeatureBanners product={featured} />
-      <BigTiles product={featured} />
       <CommunitySlideshow product={featured} settings={settings} />
-
-      {/* ---------------------------------------------------- How it works */}
-      <section id="how-it-works" className="scroll-mt-24 py-16 sm:py-24">
-        <div className="container-page">
-          <div className="mx-auto max-w-2xl text-center">
-            <Eyebrow className="justify-center">How tone-adapt works</Eyebrow>
-            <h2 className="mt-3 font-display text-4xl text-noir sm:text-5xl">
-              One blush. <em className="text-foil">Your</em> glow.
-            </h2>
-            <p className="mt-4 text-muted">
-              Crystal Blush looks deep and dark in the compact. On your skin, its colour-changing pigment develops into a soft
-              flush that adapts to your own undertone.
-            </p>
-          </div>
-
-          <ol className="mt-12 grid grid-cols-3 gap-3 sm:gap-6">
-            {[
-              { n: '01', title: 'Tap', body: 'Touch a fingertip or soft brush lightly to the crystal pan.', swatch: 'bg-[radial-gradient(circle_at_35%_30%,#5b3c42,#1c1517_70%)]' },
-              { n: '02', title: 'Bloom', body: 'Press onto your cheeks. In a minute or two the colour starts to develop.', swatch: 'animate-adapt' },
-              { n: '03', title: 'Glow', body: 'A natural, rosy flush that is yours alone. Build it up until you love it.', swatch: 'bg-[radial-gradient(circle_at_35%_30%,#f6b3c0,#d9667e_70%)]' },
-            ].map((s) => (
-              <li key={s.n} className="flex flex-col items-center text-center">
-                <div className={`h-20 w-20 sm:h-28 sm:w-28 rounded-full shadow-[inset_0_-10px_30px_rgba(0,0,0,0.15),0_14px_30px_rgba(90,42,51,0.18)] ring-4 ring-white ${s.swatch}`} aria-hidden="true" />
-                <p className="mt-6 font-display text-lg text-rose-600">{s.n}</p>
-                <h3 className="mt-1 tracked-caps font-sans text-sm text-noir">{s.title}</h3>
-                <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted sm:text-sm">{s.body}</p>
-              </li>
-            ))}
-          </ol>
-
-          <figure className="mx-auto mt-16 max-w-3xl rounded-2xl bg-blush-100 px-6 py-8 sm:px-10">
-            <figcaption className="text-center">
-              <span className="tracked-caps text-[0.68rem] text-rose-700">One shade, many glows</span>
-              <span className="mt-1 block text-xs text-muted">Illustration of how the same blush develops differently</span>
-            </figcaption>
-            <ul className="mt-6 grid grid-cols-4 gap-3 sm:gap-6">
-              {SKIN_TONES.map((t) => (
-                <li key={t.label} className="flex flex-col items-center gap-2">
-                  <div
-                    className="aspect-square w-full max-w-24 rounded-full shadow-inner"
-                    style={{ background: `radial-gradient(circle at 50% 55%, ${t.flush} 0%, transparent 62%), ${t.skin}` }}
-                    aria-hidden="true"
-                  />
-                  <span className="text-center text-[0.65rem] tracking-[0.12em] text-ink/70 uppercase">{t.label}</span>
-                </li>
-              ))}
-            </ul>
-          </figure>
-        </div>
-      </section>
 
       {/* -------------------------------------------------------- Ingredients */}
       {(featured.ingredients || featured.specs?.length > 0) && (
