@@ -50,14 +50,15 @@ export default function Home() {
   const [titleFirst, ...titleWords] = (featured?.name || '').split(' ')
   const titleRest = titleWords.join(' ')
 
+  const isLaunch = featured?.slug === LAUNCH_SLUG
   useSeo({
-    title: featured ? `${featured.name} — ${featured.subtitle || 'Kryztal Lumi'}` : null,
-    description: featured
+    title: !isLaunch ? 'Shop' : featured ? `${featured.name} — ${featured.subtitle || 'Kryztal Lumi'}` : null,
+    description: isLaunch
       ? `${featured.name} by Kryztal Lumi: ${featured.subtitle?.toLowerCase() || ''}. ${formatMoney(min)} · cash on delivery or GCash · ships nationwide.`
       : 'Kryztal Lumi beauty — shop online, cash on delivery or GCash, shipped nationwide.',
   })
 
-  if (!featured || featured.slug !== LAUNCH_SLUG) return <Shop />
+  if (!isLaunch) return <Shop />
 
   return (
     <div className="bg-ivory">
