@@ -220,11 +220,11 @@ test('categories appear as shop filters once used', async ({ page }) => {
   await expect(page.getByTestId('product-card')).toHaveCount(1)
 })
 
-test('owner publishes a review and a photo look; they replace the slideshow placeholders', async ({ page }) => {
+test('owner publishes a review and a photo look; they lead the community slideshow', async ({ page }) => {
   const errors = watchErrors(page)
   await page.goto('/')
   await waitForApp(page)
-  await expect(page.getByTestId('community-placeholder').first()).toBeAttached()
+  await expect(page.getByTestId('community-perk').first()).toBeAttached()
   await expect(page.getByTestId('community-card')).toHaveCount(0)
 
   await adminLogin(page, '/admin/community')
@@ -246,7 +246,8 @@ test('owner publishes a review and a photo look; they replace the slideshow plac
   await page.goto('/')
   await waitForApp(page)
   await expect(page.getByTestId('community-card')).toHaveCount(2)
-  await expect(page.getByTestId('community-placeholder')).toHaveCount(0)
+  // Real posts come first, ahead of the brand cards
+  await expect(page.getByTestId('community-track').locator('article').first()).toHaveAttribute('data-testid', 'community-card')
   await expect(page.getByTestId('community-track')).toContainText('so natural on me')
   await expect(page.getByTestId('community-track')).toContainText('@glowwithana')
   expect(errors).toEqual([])

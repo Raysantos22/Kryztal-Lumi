@@ -11,7 +11,8 @@ test('every public page renders without errors or horizontal scroll', async ({ p
   await expect(page.getByTestId('ingredients')).toContainText('D&C RED NO.22', { ignoreCase: true })
   await expect(page.getByTestId('banner-product')).toContainText('Crystal Blush')
   await expect(page.getByRole('heading', { name: 'Glow notes' })).toBeVisible()
-  await expect(page.getByTestId('community-placeholder').first()).toBeVisible()
+  await expect(page.getByTestId('community-track')).toContainText('Fast shipping')
+  await expect(page.getByTestId('community-track')).toContainText('Cash on delivery')
   await expect(page.getByText('How does a tone-adapt blush change colour?')).toBeVisible()
   await expect(page.getByTestId('announcement')).toContainText('Cash on delivery')
   // No socials / Messenger configured yet → hidden
