@@ -38,6 +38,8 @@ async function cleanLogo() {
   await sharp(png).png({ compressionLevel: 9 }).toFile(out('images', 'logo.png'))
   await sharp(png).webp({ quality: 90, alphaQuality: 100 }).toFile(out('images', 'logo.webp'))
   await sharp(png).resize({ width: 420 }).webp({ quality: 90, alphaQuality: 100 }).toFile(out('images', 'logo-sm.webp'))
+  // Emails: PNG (WebP support in mail clients is patchy), 2× for 150px display
+  await sharp(png).resize({ width: 300 }).png({ compressionLevel: 9, palette: true }).toFile(out('images', 'logo-email.png'))
   console.log('logo', meta.width, '×', meta.height)
   return png
 }
