@@ -78,7 +78,7 @@ export function AdminProducts() {
 }
 
 const PRODUCT_FIELDS = [
-  'name', 'slug', 'subtitle', 'description', 'details', 'ingredients', 'specs', 'price', 'compare_at_price', 'stock',
+  'name', 'slug', 'subtitle', 'description', 'details', 'ingredients', 'specs', 'price', 'compare_at_price',
   'track_stock', 'variant_label', 'max_per_order', 'category_id', 'is_active', 'is_featured', 'badge_new', 'badge_bestseller', 'sort_order',
 ]
 const NEW_PRODUCT = {
@@ -92,7 +92,6 @@ function toRow(f) {
   for (const k of PRODUCT_FIELDS) row[k] = f[k]
   row.price = num(f.price)
   row.compare_at_price = num(f.compare_at_price)
-  row.stock = num(f.stock) ?? 0
   row.max_per_order = num(f.max_per_order) ?? 10
   row.sort_order = num(f.sort_order) ?? 0
   row.category_id = f.category_id || null
@@ -109,7 +108,6 @@ function validateProduct(row) {
   if (!row.slug) return 'Please enter a link name (slug).'
   if (row.price == null || Number.isNaN(row.price) || row.price < 0) return 'Please enter a valid price.'
   if (row.compare_at_price != null && (Number.isNaN(row.compare_at_price) || row.compare_at_price < 0)) return 'Compare-at price is not valid.'
-  if (!Number.isInteger(row.stock) || row.stock < 0) return 'Stock must be a whole number (0 or more).'
   return null
 }
 
@@ -122,15 +120,18 @@ function VariantsPanel({ product, onChanged }) {
   const setRow = (id, k, v) => setRows((rs) => rs.map((r) => (r.id === id ? { ...r, [k]: v } : r)))
   const saveRow = (r) =>
     run(r.id, async () => {
+      const stock = num(r.stock)
+      if (!Number.isInteger(stock) || stock < 0) throw new Error('Stock must be a whole number (0 or more).')
       await api.saveVariant({
         id: r.id,
         name: r.name.trim(),
         sku: r.sku?.trim() || null,
         price: num(r.price),
-        stock: num(r.stock) ?? 0,
         swatch: r.swatch || null,
         is_active: r.is_active,
       })
+      const loaded = product.variants.find((v) => v.id === r.id)
+      if (loaded && stock !== loaded.stock) await api.setStock(product.id, r.id, loaded.stock, stock)
       await onChanged()
     })
   const add = (e) => {
@@ -324,10 +325,14 @@ export function AdminProductEdit() {
   const save = (e) => {
     e.preventDefault()
     const row = toRow(f)
-    const invalid = validateProduct(row)
+    const stock = num(f.stock)
+    const invalid = validateProduct(row) || (!Number.isInteger(stock) || stock < 0 ? 'Stock must be a whole number (0 or more).' : null)
     if (invalid) return setError(invalid)
     run('save', async () => {
-      const result = await api.saveProduct(isNew ? row : { id, ...row })
+      const result = await api.saveProduct(isNew ? { ...row, stock } : { id, ...row })
+      // Stock is set separately and only if it was edited, with a check that
+      // nobody bought / cancelled in the meantime.
+      if (!isNew && stock !== product.stock) await api.setStock(id, null, product.stock, stock)
       store.reload()
       if (isNew) navigate(`/admin/products/${result.id}`, { replace: true })
       else {

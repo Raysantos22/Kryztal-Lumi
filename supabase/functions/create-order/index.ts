@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
     }
     // Deadlock / serialization failure under heavy concurrency: ask to retry.
     if (error.code === '40P01' || error.code === '40001') {
-      return json({ error: 'Lots of orders at once — please try again in a moment.', hint: 'out_of_stock' }, 409)
+      return json({ error: 'Lots of orders at once — please try again in a moment.', hint: 'retry' }, 409)
     }
     console.error('create_order failed', error)
     return json({ error: 'Sorry, we could not place your order. Please try again or message us.' }, 500)

@@ -123,12 +123,14 @@ describe('create_order', () => {
     expect(o.shipping_fee).toBe(120)
   })
 
-  it('a province in no zone needs a zone chosen by the customer', async () => {
-    await expect(order({ customer: { province: 'Overseas' } })).rejects.toThrow('choose a shipping zone')
-    const o = await order({ customer: { province: 'Overseas' }, zone: ZONE.visayas })
-    expect(o.shipping_fee).toBe(150)
-    await q('update shipping_zones set is_active = false where id = $1', [ZONE.visayas])
-    await expect(order({ customer: { province: 'Overseas', phone: '0917 000 0009' }, zone: ZONE.visayas })).rejects.toThrow('choose a shipping zone')
+  it('a province in no zone pays the highest active fee; a browser-chosen zone is ignored', async () => {
+    const o = await order({ customer: { province: 'Davao' }, zone: ZONE.metro })
+    expect(o.shipping).toMatchObject({ zone_name: 'Mindanao' })
+    expect(o.shipping_fee).toBe(170)
+    await q('update shipping_zones set is_active = false where id = $1', [ZONE.mindanao])
+    expect((await order({ customer: { province: 'Overseas', phone: '0917 000 0009' } })).shipping_fee).toBe(150)
+    await q('update shipping_zones set is_active = false')
+    await expect(order({ customer: { phone: '0917 000 0010' } })).rejects.toThrow("can't ship to that address")
   })
 
   it('free shipping: everything, or above a threshold', async () => {
@@ -172,6 +174,8 @@ describe('create_order', () => {
     await expect(order({ customer: { name: 'A' } })).rejects.toThrow('full name')
     await expect(order({ customer: { phone: '12345' } })).rejects.toThrow('valid mobile')
     await expect(order({ customer: { email: 'nope' } })).rejects.toThrow('valid email')
+    await expect(order({ customer: { email: 'a@b.co?bcc=x%40evil.com' } })).rejects.toThrow('valid email')
+    await expect(order({ customer: { email: 'a@b.co&body=hi' } })).rejects.toThrow('valid email')
     await expect(order({ customer: { barangay: '' } })).rejects.toThrow('barangay')
     await expect(order({ customer: { city: '' } })).rejects.toThrow('city')
     await expect(order({ customer: { zip: '12' } })).rejects.toThrow('ZIP')
@@ -244,6 +248,14 @@ describe('variants (generic catalogue)', () => {
     expect((await one('select stock from product_variants where id = $1', [SHADE_NUDE])).stock).toBe(1)
   })
 
+  it('max per order counts all options of a product together', async () => {
+    await q('update products set max_per_order = 3 where id = $1', [VARIANT_PRODUCT])
+    await q('update product_variants set stock = 10')
+    await expect(
+      order({ items: [{ product_id: VARIANT_PRODUCT, variant_id: SHADE_ROSE, quantity: 2 }, { product_id: VARIANT_PRODUCT, variant_id: SHADE_NUDE, quantity: 2 }] }),
+    ).rejects.toThrow('up to 3 of Lip Tint')
+  })
+
   it('requires an active variant of that product', async () => {
     await expect(order({ items: [{ product_id: VARIANT_PRODUCT, quantity: 1 }] })).rejects.toThrow('choose a shade for Lip Tint')
     await expect(order({ items: [{ product_id: PRODUCT_ID, variant_id: SHADE_ROSE, quantity: 1 }] })).rejects.toThrow('no longer available')
@@ -298,17 +310,28 @@ describe('GCash expiry', () => {
     expect(await stock()).toBe(49)
   })
 
-  it('orders with a submitted reference wait for the owner', async () => {
+  it('orders with a submitted reference get 48 more hours, then expire too (a fake reference cannot hold stock forever)', async () => {
     const o = await order({ method: 'gcash', ref: 'ABC12345' })
     await q("update orders set expires_at = now() - interval '1 minute' where id = $1", [o.id])
     expect((await one('select expire_unpaid_orders() as n')).n).toBe(0)
+    await q("update orders set expires_at = now() - interval '49 hours' where id = $1", [o.id])
+    expect((await one('select expire_unpaid_orders() as n')).n).toBe(1)
+    expect(await stock()).toBe(50)
+    // …and a late payment can still be confirmed while stock lasts
+    expect((await markPaid(o.id)).status).toBe('confirmed')
   })
 
-  it('expired orders no longer count towards the per-phone cap', async () => {
+  it('a reference cannot be submitted after the payment window closed', async () => {
+    const o = await order({ method: 'gcash' })
+    await q("update orders set expires_at = now() - interval '1 minute' where id = $1", [o.id])
+    await expect(one('select submit_gcash_reference($1, $2, $3)', [o.order_no, CUSTOMER.phone, '123456'])).rejects.toThrow('payment window')
+  })
+
+  it('expired orders no longer count towards the per-phone cap (even before the cron job runs)', async () => {
     for (let i = 0; i < 3; i++) await order({ method: 'gcash' })
     await q("update orders set expires_at = now() - interval '1 minute'")
     await order({ method: 'gcash' })
-    expect((await one("select count(*)::int as n from orders where status = 'cancelled'")).n).toBe(3)
+    expect((await one("select count(*)::int as n from orders where status = 'awaiting_payment'")).n).toBe(4)
   })
 })
 
@@ -416,6 +439,15 @@ describe('admin order flow', () => {
     await expect(markPaid(m.id)).rejects.toThrow('Only orders awaiting payment')
   })
 
+  it('reinstating uses the current catalogue: untracked products take no stock', async () => {
+    const o = await order({ method: 'gcash', items: [{ product_id: PRODUCT_ID, quantity: 2 }] })
+    await q("update orders set expires_at = now() - interval '1 minute' where id = $1", [o.id])
+    await one('select expire_unpaid_orders()')
+    await q('update products set stock = 0, track_stock = false')
+    expect((await markPaid(o.id)).status).toBe('confirmed')
+    expect(await stock()).toBe(0)
+  })
+
   it('tracking can be corrected after shipping', async () => {
     const o = await order()
     await expect(asAdmin(() => q('select admin_update_tracking($1, $2, $3)', [o.id, 'LBC', '1']))).rejects.toThrow('after the order has shipped')
@@ -521,7 +553,11 @@ describe('row level security & privileges', () => {
     await asAdmin(async () => {
       await q("insert into categories (slug, name) values ('blush', 'Blush')")
       await q("insert into products (slug, name, price, stock) values ('lip-oil', 'Lip Oil', 250, 10)")
-      await q('update products set stock = 60 where id = $1', [PRODUCT_ID])
+      // Stock only changes through the compare-and-set function
+      await expect(q('update products set stock = 60 where id = $1', [PRODUCT_ID])).rejects.toThrow(/permission denied/)
+      await expect(q('select admin_set_stock($1, null, 50, 60)', [PRODUCT_ID])).rejects.toThrow('Stock changed to 49')
+      expect((await one('select admin_set_stock($1, null, 49, 60) as s', [PRODUCT_ID])).s).toBe(60)
+      await q("update products set price = 450 where id = $1", [PRODUCT_ID])
       await q("update store_settings set gcash_number = '0917 000 0000'")
       await q("update store_private set notify_email = 'owner@example.com'")
       expect((await one('select notify_email from store_private')).notify_email).toBe('owner@example.com')
@@ -546,6 +582,23 @@ describe('row level security & privileges', () => {
     await asAdmin(async () => {
       await q("insert into storage.objects (bucket_id, name) values ('media', 'products/x.webp')")
       await expect(q("insert into storage.objects (bucket_id, name) values ('other', 'x')")).rejects.toThrow(/row-level security/)
+    })
+  })
+
+  it('claim_notification lets only one caller send each (order, kind, channel)', async () => {
+    const o = await order()
+    const claim = (force = false) => one('select claim_notification($1, $2, $3, $4) as id', [o.id, 'order_confirmed', 'email', force]).then((r) => r.id)
+    const first = await claim()
+    expect(first).toBeTruthy()
+    expect(await claim()).toBeNull() // still pending
+    await q("update notifications_log set status = 'sent' where id = $1", [first])
+    expect(await claim()).toBeNull() // already sent
+    expect(await claim(true)).toBeTruthy() // admin resend
+    await q("update notifications_log set status = 'failed' where status = 'pending'")
+    await q("delete from notifications_log where status = 'sent'")
+    expect(await claim()).toBeTruthy() // a failure can be retried
+    await as(db, 'authenticated', ADMIN_USER, async () => {
+      await expect(q('select claim_notification($1, $2, $3)', [o.id, 'x', 'email'])).rejects.toThrow(/permission denied/)
     })
   })
 

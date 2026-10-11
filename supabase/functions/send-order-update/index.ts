@@ -5,13 +5,14 @@
 // NOTIFY_WEBHOOK_SECRET) when an order becomes confirmed or shipped, and by
 // the dashboard's "Resend email" button (admin JWT, force = true).
 // Emails the customer if they gave an email (and texts them if SMS is
-// enabled). Every outcome is logged in notifications_log; without `force`,
-// channels that already sent this kind are skipped so retries never
-// double-message.
+// enabled). Each channel is first claimed atomically with
+// claim_notification() (a "pending" log row), so overlapping calls never
+// both send; the row is then updated with the outcome. `force` (the
+// admin's Resend button) always sends.
 import { bearerToken, json, preflight, safeEqual, UUID_RE } from '../_shared/http.ts'
 import { adminClient, isServiceRoleToken, userFromToken } from '../_shared/supabase.ts'
 import { loadOrder } from '../_shared/orders.ts'
-import { notify, type Channel } from '../_shared/notifications/index.ts'
+import { enabledProviders, notify, type Channel } from '../_shared/notifications/index.ts'
 import { orderConfirmedMessage, orderShippedMessage } from '../_shared/notifications/templates.ts'
 
 const KINDS = { order_confirmed: 'confirmed', order_shipped: 'shipped' } as const
@@ -57,15 +58,22 @@ Deno.serve(async (req) => {
     return json({ error: `Order is ${order.status}; nothing to send for ${kind}.` }, 409)
   }
 
+  // Claim each enabled channel; channels someone else already sent (or is
+  // sending) are skipped.
+  const claims = new Map<Channel, string>()
   const skipChannels = new Set<Channel>()
-  if (body.force !== true) {
-    const { data: sent } = await db
-      .from('notifications_log')
-      .select('channel')
-      .eq('order_id', orderId)
-      .eq('kind', kind)
-      .eq('status', 'sent')
-    for (const row of sent ?? []) skipChannels.add(row.channel as Channel)
+  for (const p of enabledProviders()) {
+    const { data: claimId, error } = await db.rpc('claim_notification', {
+      p_order_id: orderId,
+      p_kind: kind,
+      p_channel: p.channel,
+      p_force: body.force === true,
+    })
+    if (error) {
+      console.error('claim_notification failed', error)
+      skipChannels.add(p.channel)
+    } else if (claimId) claims.set(p.channel, claimId as string)
+    else skipChannels.add(p.channel)
   }
 
   const siteUrl = Deno.env.get('SITE_URL') || undefined
@@ -74,11 +82,14 @@ Deno.serve(async (req) => {
     skipChannels,
   })
 
-  if (results.length) {
-    const { error } = await db.from('notifications_log').insert(
-      results.map((r) => ({ order_id: orderId, channel: r.channel, kind, recipient: r.recipient, status: r.status, error: r.error ?? null })),
-    )
-    if (error) console.error('notifications_log insert failed', error)
+  for (const r of results) {
+    const id = claims.get(r.channel)
+    if (!id) continue
+    const { error } = await db
+      .from('notifications_log')
+      .update({ recipient: r.recipient, status: r.status, error: r.error ?? null, sent_at: new Date().toISOString() })
+      .eq('id', id)
+    if (error) console.error('notifications_log update failed', error)
   }
 
   return json({ ok: true, results })

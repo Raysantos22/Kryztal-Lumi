@@ -19,6 +19,7 @@ export const FRIENDLY_HINTS = new Set([
   'too_many_pending',
   'not_found',
   'invalid_status',
+  'stock_changed',
 ])
 
 export function toApiError(err, fallback = 'Something went wrong. Please try again.') {

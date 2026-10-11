@@ -63,7 +63,7 @@ function getDb() {
 // PGlite does not persist on commit, so a write followed by a page
 // navigation would otherwise be lost.
 const WRITE_SQL =
-  /^\s*(insert|update|delete)\b|\b(create_order|submit_gcash_reference|admin_set_order_status|admin_mark_paid|admin_update_tracking|expire_unpaid_orders)\(/i
+  /^\s*(insert|update|delete)\b|\b(create_order|submit_gcash_reference|admin_set_stock|admin_set_order_status|admin_mark_paid|admin_update_tracking|expire_unpaid_orders)\(/i
 
 async function flush(db) {
   try {
@@ -274,6 +274,10 @@ export async function resendOrderEmail(id, kind) {
   await logDemoCustomerEmail(id, kind)
   return { ok: true, demo: true }
 }
+
+// Compare-and-set: refuses if stock changed since the form loaded it.
+export const setStock = (productId, variantId, expected, next) =>
+  rpc('select public.admin_set_stock($1, $2, $3, $4)', [productId, variantId || null, expected, next])
 
 export const saveProduct = (product) => save('products', product)
 export const deleteProduct = (id) => remove('products', id)

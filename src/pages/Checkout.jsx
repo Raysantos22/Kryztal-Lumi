@@ -28,12 +28,11 @@ const EMPTY = {
   zip: '',
   landmark: '',
   notes: '',
-  zone_id: '',
   payment_method: '',
   gcash_reference: '',
 }
 
-function validate(f, { zone, needsZone }) {
+function validate(f) {
   const e = {}
   if (f.name.trim().length < 2) e.name = 'Please enter your full name.'
   if (!isValidPhone(f.phone)) e.phone = 'Please enter a valid mobile number, e.g. 0917 123 4567.'
@@ -44,7 +43,6 @@ function validate(f, { zone, needsZone }) {
   if (!f.province) e.province = 'Please choose your province.'
   if (f.province === OTHER && f.province_other.trim().length < 2) e.province_other = 'Please type your province.'
   if (f.zip.trim() && !/^\d{4}$/.test(f.zip.trim())) e.zip = 'ZIP code should be 4 digits.'
-  if (needsZone && !zone) e.zone_id = 'Please choose a shipping zone.'
   if (!f.payment_method) e.payment_method = 'Please choose how you want to pay.'
   if (f.gcash_reference.trim() && !/^[A-Za-z0-9\s-]{4,40}$/.test(f.gcash_reference.trim()))
     e.gcash_reference = 'That reference number looks wrong — please check it.'
@@ -69,8 +67,10 @@ export default function Checkout() {
 
   const province = f.province === OTHER ? f.province_other.trim() : f.province
   const autoZone = useMemo(() => (f.province && f.province !== OTHER ? zoneForProvince(zones.data, f.province) : null), [zones.data, f.province])
-  const needsZone = !!f.province && !autoZone
-  const zone = autoZone || (zones.data || []).find((z) => z.id === f.zone_id) || null
+  // A province in no zone pays the highest zone fee (the server does the same).
+  const fallbackZone = useMemo(() => [...(zones.data || [])].sort((a, b) => b.fee - a.fee)[0] || null, [zones.data])
+  const outsideZones = !!province && !autoZone
+  const zone = autoZone || (outsideZones ? fallbackZone : null)
   const fee = shippingFee(settings, zone, subtotal)
   const total = subtotal + (fee || 0)
   const minOrder = Number(settings?.min_order_amount || 0)
@@ -102,7 +102,7 @@ export default function Checkout() {
   const submit = async (e) => {
     e.preventDefault()
     setSubmitError(null)
-    const v = validate(f, { zone, needsZone })
+    const v = validate(f)
     setErrors(v)
     if (Object.keys(v).length) {
       const first = document.getElementById(`co-${Object.keys(v)[0]}`)
@@ -128,7 +128,6 @@ export default function Checkout() {
         },
         payment_method: f.payment_method,
         gcash_reference: f.payment_method === 'gcash' ? f.gcash_reference.trim() || null : null,
-        shipping_zone_id: needsZone ? f.zone_id : null,
         notes: f.notes.trim() || null,
       })
       rememberOrder(order.order_no, f.phone.trim())
@@ -238,18 +237,11 @@ export default function Checkout() {
                     {autoZone.delivery_time ? ` · ${autoZone.delivery_time}` : ''} ·{' '}
                     <strong className="font-medium">{fee === 0 ? 'FREE' : formatMoney(fee)}</strong>
                   </p>
-                ) : needsZone ? (
-                  <Field label="Shipping zone" htmlFor="co-zone_id" error={errors.zone_id} hint="We couldn't match your province — choose the closest area.">
-                    <select id="co-zone_id" className="input" value={f.zone_id} onChange={set('zone_id')} aria-invalid={errors.zone_id ? 'true' : undefined}>
-                      <option value="">Choose…</option>
-                      {(zones.data || []).map((z) => (
-                        <option key={z.id} value={z.id}>
-                          {z.name} — {formatMoney(z.fee)}
-                          {z.delivery_time ? ` (${z.delivery_time})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
+                ) : outsideZones && zone ? (
+                  <p>
+                    Outside our listed areas · <strong className="font-medium">{fee === 0 ? 'FREE' : formatMoney(fee)}</strong> shipping
+                    {zone.delivery_time ? ` · usually ${zone.delivery_time}` : ''}. We&apos;ll message you if we can&apos;t deliver there.
+                  </p>
                 ) : (
                   <span className="text-muted">Choose your province to see the shipping fee and delivery time.</span>
                 )}

@@ -24,7 +24,11 @@ It is a React + Vite + Tailwind front end on top of Supabase (Postgres, Auth, St
 ```bash
 npm install
 npm run dev          # http://localhost:5173
+npm run build:demo   # a deployable demo build
 ```
+
+`npm run build` refuses to build without `VITE_SUPABASE_URL`, so a live site can never silently fall back to
+the in-browser demo. Set `VITE_DEMO_MODE=true` (or use `build:demo`) when you really want a demo build.
 
 When `VITE_SUPABASE_URL` is not set, the shop runs in **demo mode**:
 
@@ -81,8 +85,9 @@ Supabase
    variant has to be chosen.
 4. Takes stock with `update … set stock = stock - qty where id = … and stock >= qty`. That row lock means
    two customers can never buy the last unit. Lines are processed in a fixed order to avoid deadlocks.
-5. Picks the shipping zone from the province (the first active zone that lists it) and applies free
-   shipping and the minimum order.
+5. Picks the shipping zone from the province (the first active zone that lists it). A province that is
+   in no zone pays the highest active fee; the browser's suggestion is never used for pricing. Then it
+   applies free shipping and the minimum order.
 6. Inserts the order with a readable number (`KL-24A7F3`). It snapshots the customer, the address, the zone,
    and the product names and prices, so later catalogue edits never change past orders.
 
@@ -98,9 +103,11 @@ GCash:  awaiting_payment ─┴─(mark paid)─→ confirmed → packed → shi
 - **Delivered** marks a COD order as paid.
 - **Cancelled** and **returned** put the stock back exactly once (`stock_released`).
 - An unpaid GCash order is **auto-cancelled** after `gcash_expiry_hours` (default 24) and its stock is
-  released. Orders where the customer already entered a GCash reference wait for the owner instead. If a
-  payment arrives late, *Mark GCash paid* still reinstates an auto-cancelled order, as long as the stock
-  is still available.
+  released. Orders where the customer entered a GCash reference get 48 more hours for the owner to
+  verify it, so a fake reference can't hold stock forever. If a payment arrives late, *Mark GCash paid*
+  still reinstates an auto-cancelled order, as long as the stock is still available.
+- **Stock edits in the admin** go through `admin_set_stock()`, a compare-and-set. If orders or cancellations
+  changed the stock while the form was open, the save is refused instead of overwriting live stock.
 
 ### Generic catalogue
 
@@ -194,8 +201,9 @@ npx supabase db push                          # all migrations (tables, RLS, fun
 | Resend | email | **On.** It sends the owner alert for every new order, and the customer email (if one was given) on *confirmed* and *shipped*. |
 | Twilio | sms | **Stub, off by default.** To turn it on, add `sms` to `NOTIFY_CHANNELS` and set the `TWILIO_*` secrets. |
 
-Every attempt is logged in `notifications_log` and shown on the order page in the admin. A retry never
-sends the same email twice. The admin's *Resend email* button forces a resend.
+Every attempt is logged in `notifications_log` and shown on the order page in the admin. Before sending,
+each channel is claimed atomically (`claim_notification()`), so overlapping calls never send the same email
+twice. The admin's *Resend email* button forces a resend.
 
 ## 7. Images
 
@@ -214,7 +222,7 @@ Product photos the owner uploads go to Supabase Storage.
 
 | Command | What it checks |
 |---|---|
-| `npm run test:db` | 42 Postgres tests on PGlite with the real migrations. They cover pricing from the DB, totals, zones and free shipping, minimum order, stock reservation and oversell refusal, multi-line rollback, variants, the anti-spam cap, GCash expiry and late-payment reinstatement, the status machine, restock-once, admin list and stats, RLS, column grants, storage policies, and a check that no function is executable by `anon` unless intended. |
+| `npm run test:db` | 46 Postgres tests on PGlite with the real migrations. They cover pricing from the DB, totals, zones and free shipping, minimum order, stock reservation and oversell refusal, multi-line rollback, variants, the anti-spam cap, GCash expiry and late-payment reinstatement, the status machine, restock-once, admin list and stats, RLS, column grants, storage policies, and a check that no function is executable by `anon` unless intended. |
 | `npm run test:functions` | Deno tests for the email templates (escaping, content), the provider HTTP calls, phone formatting, channel selection, and create-order payload validation. |
 | `npm run check:functions` | Type-checks the three edge functions. |
 | `npm run test:e2e` | 11 Playwright flows × desktop and Pixel 7, against demo mode. They cover every public page, COD and GCash checkout, the bag drawer, validation, the order cap, low stock and sold out, the full admin order flow with tracking, mark-paid, cancel and restock, product, variant and photo CRUD, shipping zones, free shipping, settings, categories, and horizontal scroll. |

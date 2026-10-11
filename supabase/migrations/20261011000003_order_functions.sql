@@ -149,37 +149,44 @@ end;
 $$;
 
 -- Put an order's reserved stock back (cancel / return / expiry). Idempotent.
--- Variant lines whose variant was deleted are skipped (nothing to restock).
+-- Rows are updated one at a time in (product, variant) order — the same
+-- order create_order() locks them in — so concurrent orders and cancels
+-- can't deadlock. Lines whose variant/product was deleted are skipped,
+-- and so are products whose stock is no longer tracked.
 create or replace function public._release_order_stock(p_order_id uuid)
 returns void
 language plpgsql
 security definer
 set search_path = ''
 as $$
+declare
+  r record;
 begin
-  if (select o.stock_released from public.orders o where o.id = p_order_id) then
+  if (select o.stock_released from public.orders o where o.id = p_order_id for update) then
     return;
   end if;
-  update public.products p
-     set stock = p.stock + x.qty
-    from (select i.product_id, sum(i.quantity)::int as qty
-            from public.order_items i
-           where i.order_id = p_order_id and i.stock_reserved
-             and i.variant_name is null and i.product_id is not null
-           group by i.product_id) x
-   where p.id = x.product_id;
-  update public.product_variants v
-     set stock = v.stock + x.qty
-    from (select i.variant_id, sum(i.quantity)::int as qty
-            from public.order_items i
-           where i.order_id = p_order_id and i.stock_reserved and i.variant_id is not null
-           group by i.variant_id) x
-   where v.id = x.variant_id;
+  for r in
+    select i.product_id, i.variant_id, i.variant_name, sum(i.quantity)::int as qty
+      from public.order_items i
+     where i.order_id = p_order_id and i.stock_reserved and i.product_id is not null
+     group by i.product_id, i.variant_id, i.variant_name
+     order by i.product_id, i.variant_id nulls first
+  loop
+    if r.variant_name is null then
+      update public.products set stock = stock + r.qty where id = r.product_id and track_stock;
+    elsif r.variant_id is not null then
+      update public.product_variants v set stock = v.stock + r.qty
+        from public.products p
+       where v.id = r.variant_id and p.id = v.product_id and p.track_stock;
+    end if;
+  end loop;
   update public.orders set stock_released = true where id = p_order_id;
 end;
 $$;
 
 -- Take an order's stock again (reinstating an auto-cancelled GCash order).
+-- Uses the catalogue as it is now: lines of products that no longer track
+-- stock take nothing; removed products / options refuse the reinstatement.
 create or replace function public._reserve_order_stock(p_order_id uuid)
 returns void
 language plpgsql
@@ -189,20 +196,24 @@ as $$
 declare
   r record;
 begin
-  if not (select o.stock_released from public.orders o where o.id = p_order_id) then
+  if not (select o.stock_released from public.orders o where o.id = p_order_id for update) then
     return;
   end if;
   for r in
-    select i.product_id, i.variant_id, i.variant_name, i.product_name, i.quantity
+    select i.product_id, i.variant_id, i.variant_name, i.product_name, sum(i.quantity)::int as qty
       from public.order_items i
      where i.order_id = p_order_id and i.stock_reserved
+     group by i.product_id, i.variant_id, i.variant_name, i.product_name
      order by i.product_id, i.variant_id nulls first
   loop
-    if r.product_id is null or (r.variant_name is not null and r.variant_id is null) then
+    if r.product_id is null or (r.variant_name is not null and r.variant_id is null)
+       or not exists (select 1 from public.products p where p.id = r.product_id and p.is_active) then
       raise exception '% is no longer in the catalogue.', r.product_name using hint = 'out_of_stock';
     end if;
-    perform public._take_stock(r.product_id, r.variant_id, r.quantity,
-                               r.product_name || coalesce(' (' || r.variant_name || ')', ''));
+    if (select p.track_stock from public.products p where p.id = r.product_id) then
+      perform public._take_stock(r.product_id, r.variant_id, r.qty,
+                                 r.product_name || coalesce(' (' || r.variant_name || ')', ''));
+    end if;
   end loop;
   update public.orders set stock_released = false where id = p_order_id;
 end;
@@ -227,8 +238,10 @@ $$;
 
 -- ---------------------------------------------------------------------
 -- Auto-cancel GCash orders still unpaid after gcash_expiry_hours and
--- release their stock. Orders where the customer already submitted a
--- reference wait for the owner to verify. Returns number cancelled.
+-- release their stock. Orders where the customer submitted a reference get
+-- an extra 48 hours for the owner to verify it (so a fake reference can't
+-- hold stock forever). A late payment can still be confirmed with
+-- admin_mark_paid while stock lasts. Returns number cancelled.
 -- ---------------------------------------------------------------------
 create or replace function public.expire_unpaid_orders()
 returns int
@@ -243,12 +256,12 @@ begin
   for r in
     select o.id from public.orders o
      where o.status = 'awaiting_payment'
-       and o.payment_status = 'unpaid'
-       and o.expires_at < now()
+       and ((o.payment_status = 'unpaid' and o.expires_at < now())
+            or (o.payment_status = 'submitted' and o.expires_at + interval '48 hours' < now()))
      order by o.id
      for update skip locked
   loop
-    perform public._cancel_order(r.id, 'Auto-cancelled: GCash payment not received in time');
+    perform public._cancel_order(r.id, 'Auto-cancelled: GCash payment not confirmed in time');
     v_count := v_count + 1;
   end loop;
   return v_count;
@@ -260,6 +273,7 @@ $$;
 --   p_items    [{"product_id": uuid, "variant_id": uuid|null, "quantity": int}]
 --   p_customer {"name","phone","email","address_line","barangay","city",
 --               "province","zip","landmark"}
+--   p_shipping_zone_id  kept for API compatibility; never used for pricing
 -- Prices, stock, shipping and free-shipping rules are re-read from the
 -- database — nothing the browser computed is trusted.
 -- ---------------------------------------------------------------------
@@ -320,7 +334,9 @@ begin
      or char_length(v_phone) > 30 then
     raise exception 'Please enter a valid mobile number (e.g. 0917 123 4567).' using hint = 'invalid_input';
   end if;
-  if v_email is not null and (v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$' or char_length(v_email) > 254) then
+  -- Plain addresses only (no ?, &, % … that could smuggle mailto: parameters)
+  if v_email is not null and (v_email !~ '^[a-z0-9._+''-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$'
+                              or char_length(v_email) > 254) then
     raise exception 'Please enter a valid email address.' using hint = 'invalid_input';
   end if;
   if char_length(v_address) < 3 or char_length(v_address) > 200 then
@@ -363,10 +379,17 @@ begin
   -- Serialise orders from the same number so two parallel requests can't
   -- both slip under the cap.
   v_key := public.phone_key(v_phone);
+  -- (Stale GCash orders past their payment window don't count; the cron
+  -- job cancels them separately so this transaction never locks stock rows
+  -- out of order.)
   perform pg_advisory_xact_lock(hashtextextended('order-phone:' || v_key, 0));
-  perform public.expire_unpaid_orders();
   if (select count(*) from public.orders o
-       where o.phone_key = v_key and o.status in ('new', 'awaiting_payment')) >= s.max_unconfirmed_per_phone then
+       where o.phone_key = v_key
+         and (o.status = 'new'
+              or (o.status = 'awaiting_payment'
+                  and (o.expires_at > now()
+                       or (o.payment_status = 'submitted' and o.expires_at + interval '48 hours' > now())))))
+     >= s.max_unconfirmed_per_phone then
     raise exception 'You already have % orders waiting for confirmation. Please message us or wait for them to be confirmed before ordering again.',
       s.max_unconfirmed_per_phone using hint = 'too_many_pending';
   end if;
@@ -402,7 +425,9 @@ begin
     if not found then
       raise exception 'One of the items in your bag is no longer available.' using hint = 'invalid_items';
     end if;
-    if v_line.qty > v_product.max_per_order then
+    -- max per order counts every option of the product together
+    if (select sum((e->>'quantity')::int) from jsonb_array_elements(p_items) e
+         where (e->>'product_id')::uuid = v_product.id) > v_product.max_per_order then
       raise exception 'You can order up to % of % per order.', v_product.max_per_order, v_product.name
         using hint = 'invalid_items';
     end if;
@@ -455,11 +480,16 @@ begin
      and exists (select 1 from unnest(z.provinces) p where lower(btrim(p)) = lower(v_province))
    order by z.sort_order, z.name
    limit 1;
-  if v_zone.id is null and p_shipping_zone_id is not null then
-    select z.* into v_zone from public.shipping_zones z where z.id = p_shipping_zone_id and z.is_active;
+  -- A province in no zone pays the highest active zone fee. The zone the
+  -- browser suggests (p_shipping_zone_id) is never trusted for pricing.
+  if v_zone.id is null then
+    select z.* into v_zone from public.shipping_zones z
+     where z.is_active
+     order by z.fee desc, z.sort_order
+     limit 1;
   end if;
   if v_zone.id is null then
-    raise exception 'Please choose a shipping zone for your address.' using hint = 'invalid_input';
+    raise exception 'Sorry, we can''t ship to that address yet. Please message us.' using hint = 'invalid_input';
   end if;
   v_fee := case
              when s.free_shipping_mode = 'all' then 0
@@ -552,6 +582,10 @@ begin
   end if;
   if o.payment_method <> 'gcash' or o.status <> 'awaiting_payment' or o.payment_status = 'paid' then
     raise exception 'This order doesn''t need a GCash reference any more.' using hint = 'invalid_status';
+  end if;
+  if o.payment_status = 'unpaid' and o.expires_at <= now() then
+    raise exception 'The payment window for this order has closed. Please message us or place a new order.'
+      using hint = 'invalid_status';
   end if;
   if v_ref is null or v_ref !~ '^[A-Z0-9-]{4,40}$' then
     raise exception 'Please enter the reference number from your GCash receipt.' using hint = 'invalid_input';

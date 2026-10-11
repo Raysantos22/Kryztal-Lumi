@@ -479,7 +479,7 @@ export function AdminOrderDetail() {
                 <MessageSquare className="h-4 w-4" /> SMS
               </a>
               {o.customer.email && (
-                <a href={`mailto:${o.customer.email}?subject=${encodeURIComponent(`Your order ${o.order_no}`)}`} className="btn-secondary btn-sm">
+                <a href={`mailto:${encodeURIComponent(o.customer.email)}?subject=${encodeURIComponent(`Your order ${o.order_no}`)}`} className="btn-secondary btn-sm">
                   <Mail className="h-4 w-4" /> {o.customer.email}
                 </a>
               )}

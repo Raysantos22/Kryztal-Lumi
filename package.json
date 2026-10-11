@@ -19,7 +19,8 @@
     "db:reset": "supabase db reset",
     "create-admin": "node --env-file=.env.local scripts/create-admin.mjs",
     "functions:serve": "supabase functions serve --env-file supabase/functions/.env",
-    "functions:deploy": "supabase functions deploy create-order && supabase functions deploy send-order-update && supabase functions deploy expire-unpaid-orders"
+    "functions:deploy": "supabase functions deploy create-order && supabase functions deploy send-order-update && supabase functions deploy expire-unpaid-orders",
+    "build:demo": "vite build --mode demo"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.8",

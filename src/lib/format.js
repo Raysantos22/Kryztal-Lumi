@@ -57,7 +57,9 @@ export function isValidPhone(phone) {
   return digits.length >= 10 && digits.length <= 13 && String(phone).length <= 30
 }
 
-export const isValidEmail = (email) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(email || '').trim())
+// Plain addresses only (same rule as the database).
+export const isValidEmail = (email) =>
+  /^[a-z0-9._+'-]+@[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(String(email || '').trim().toLowerCase())
 
 export function messengerLink(settings, text) {
   const id = settings?.messenger_id?.trim()

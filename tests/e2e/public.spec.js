@@ -123,7 +123,7 @@ test('bag drawer + GCash checkout to Cebu, then the customer adds the reference'
   expect(errors).toEqual([])
 })
 
-test('checkout validation, unknown province needs a zone, and the per-phone order cap', async ({ page }) => {
+test('checkout validation, unlisted province pays the highest fee, and the per-phone order cap', async ({ page }) => {
   await page.goto('/')
   await waitForApp(page)
   await page.getByRole('button', { name: 'Order now' }).first().click()
@@ -136,8 +136,7 @@ test('checkout validation, unknown province needs a zone, and the per-phone orde
 
   await page.getByLabel('Province', { exact: true }).selectOption('__other')
   await page.getByLabel('Province name').fill('Overseas test')
-  await expect(page.getByLabel('Shipping zone')).toBeVisible()
-  await page.getByLabel('Shipping zone').selectOption({ label: 'Mindanao — ₱170 (5–7 days)' })
+  await expect(page.getByTestId('shipping-zone')).toContainText('Outside our listed areas')
   await expect(page.getByTestId('checkout-total')).toHaveText('₱569')
 
   // Three unconfirmed orders per phone, the fourth is refused by the database
@@ -163,7 +162,7 @@ test('low stock and sold out are shown and enforced', async ({ page }) => {
   await waitForApp(page)
   await api(page, async (api, id) => {
     await api.signInWithPassword('admin@demo.test', 'demo1234')
-    await api.saveProduct({ id, stock: 2 })
+    await api.setStock(id, null, 50, 2)
     await api.signOut()
   }, PRODUCT_ID)
 

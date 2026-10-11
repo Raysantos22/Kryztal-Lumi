@@ -159,6 +159,10 @@ async function remove(table, id) {
   await run(supabase.from(table).delete().eq('id', id))
 }
 
+// Compare-and-set: refuses if stock changed since the form loaded it.
+export const setStock = (productId, variantId, expected, next) =>
+  run(supabase.rpc('admin_set_stock', { p_product_id: productId, p_variant_id: variantId || null, p_expected: expected, p_new: next }))
+
 export const saveProduct = (product) => save('products', product)
 export const deleteProduct = (id) => remove('products', id)
 export const saveVariant = (variant) => save('product_variants', variant)

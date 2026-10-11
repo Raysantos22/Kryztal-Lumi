@@ -1,4 +1,5 @@
 import { createClient, type SupabaseClient, type User } from 'npm:@supabase/supabase-js@2'
+import { safeEqual } from './http.ts'
 
 function requireEnv(name: string): string {
   const v = Deno.env.get(name)
@@ -15,7 +16,7 @@ export function adminClient(): SupabaseClient {
 
 export function isServiceRoleToken(token: string | null): boolean {
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-  return !!token && !!key && token === key
+  return !!token && !!key && safeEqual(token, key)
 }
 
 // Resolve a user JWT to a user, or null for anon/invalid tokens.
