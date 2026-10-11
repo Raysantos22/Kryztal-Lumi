@@ -1,0 +1,44 @@
+{
+  "name": "kryztal-lumi",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:demo": "vite --mode demo",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "oxlint src tests scripts",
+    "test": "npm run test:db && npm run test:functions && npm run test:e2e",
+    "test:db": "vitest run",
+    "test:functions": "npx -y deno@2 test --allow-env supabase/functions/tests/",
+    "check:functions": "npx -y deno@2 check supabase/functions/create-order/index.ts supabase/functions/send-order-update/index.ts supabase/functions/expire-unpaid-orders/index.ts",
+    "test:e2e": "playwright test",
+    "images": "node scripts/build-images.mjs",
+    "screenshots": "node scripts/screenshots.mjs",
+    "db:reset": "supabase db reset",
+    "create-admin": "node --env-file=.env.local scripts/create-admin.mjs",
+    "functions:serve": "supabase functions serve --env-file supabase/functions/.env",
+    "functions:deploy": "supabase functions deploy create-order && supabase functions deploy send-order-update && supabase functions deploy expire-unpaid-orders"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@supabase/supabase-js": "^2.117.2",
+    "lucide-react": "^1.48.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "oxlint": "^1.81.0",
+    "sharp": "^0.34.4",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.2"
+  }
+}

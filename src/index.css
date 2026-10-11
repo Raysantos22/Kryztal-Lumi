@@ -1,0 +1,189 @@
+@import "tailwindcss";
+
+/* =====================================================================
+   Kryztal Lumi design system
+   Derived from the logo (rose-gold foil serif + 4-point sparkle) and the
+   packaging (black box, rose-gold foil, blush-pink backdrop).
+   Rose gold · blush pink · ivory · black accents. Change tokens here and
+   the whole site follows.
+   ===================================================================== */
+
+/* Side-by-side layouts: landscape screens >= 1024px, or any screen >= 1280px.
+   Portrait tablets use the stacked (phone-style) layout instead. */
+@custom-variant split (@media (min-width: 1024px) and (orientation: landscape), (min-width: 1280px));
+
+@theme {
+  --font-sans: "Jost", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Cormorant Garamond", ui-serif, Georgia, serif;
+
+  /* Rose gold (500 = foil mid-tone; 600+ pass AA as text on ivory/blush) */
+  --color-rose-50: #fcf5f4;
+  --color-rose-100: #f8e7e4;
+  --color-rose-200: #f0d0ca;
+  --color-rose-300: #e3b0a8;
+  --color-rose-400: #d0918a;
+  --color-rose-500: #b8706b;
+  --color-rose-600: #9a5754;
+  --color-rose-700: #7e4544;
+  --color-rose-800: #66393a;
+  --color-rose-900: #4f2b2c;
+
+  /* Blush backdrop (sampled from the packaging mockup) */
+  --color-blush-50: #fff6f7;
+  --color-blush-100: #feeef0;
+  --color-blush-200: #fee4e8;
+  --color-blush-300: #f9d0d6;
+  --color-blush-400: #f2b6c0;
+
+  --color-ivory: #fffaf6;
+  --color-pearl: #fbf6f3;
+  --color-noir: #121012;
+  --color-ink: #2a2123;
+  --color-muted: #6f6063;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+  body {
+    @apply bg-ivory font-sans text-ink antialiased;
+    overflow-x: clip;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
+  ::selection {
+    @apply bg-blush-300 text-noir;
+  }
+}
+
+@utility container-page {
+  @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
+}
+
+/* ---- Buttons: editorial outlined style (from the reference project) ---- */
+@utility btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition
+    focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600
+    disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-noir text-ivory shadow-sm hover:bg-rose-800;
+}
+@utility btn-secondary {
+  @apply btn border border-rose-200 bg-white text-rose-700 hover:bg-rose-50;
+}
+@utility btn-ghost {
+  @apply btn text-rose-700 hover:bg-rose-50;
+}
+@utility btn-danger {
+  @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50;
+}
+@utility btn-sm {
+  @apply px-3! py-1.5! text-xs!;
+}
+@utility btn-outline {
+  @apply inline-flex items-center justify-center gap-2 border border-noir bg-transparent px-7 py-3.5 text-[0.7rem] font-medium tracking-[0.28em] text-noir uppercase transition
+    hover:bg-noir hover:text-ivory focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-noir
+    disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-solid {
+  @apply inline-flex items-center justify-center gap-2 border border-noir bg-noir px-7 py-3.5 text-[0.7rem] font-medium tracking-[0.28em] text-ivory uppercase transition
+    hover:border-rose-800 hover:bg-rose-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-noir
+    disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-light {
+  @apply inline-flex items-center justify-center gap-2 border border-rose-200 bg-transparent px-7 py-3.5 text-[0.7rem] font-medium tracking-[0.28em] text-rose-100 uppercase transition
+    hover:bg-rose-100 hover:text-noir focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-200;
+}
+
+@utility card {
+  @apply rounded-2xl border border-rose-100 bg-white shadow-sm;
+}
+@utility input {
+  @apply block w-full rounded-lg border border-rose-200 bg-white px-3.5 py-2.5 text-base text-ink sm:text-sm
+    placeholder:text-stone-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 focus:outline-none
+    aria-invalid:border-red-400;
+}
+@utility label {
+  @apply mb-1 block text-sm font-medium text-stone-700;
+}
+@utility badge {
+  @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+}
+
+/* ---- Editorial type ---- */
+@utility tracked-caps {
+  @apply font-sans font-medium tracking-[0.28em] uppercase;
+}
+/* Rose-gold foil text, like the logo */
+@utility text-foil {
+  background: linear-gradient(115deg, #e9b9b0 0%, #b8706b 30%, #f6dcd5 48%, #c98a83 62%, #8f4f4d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility bg-foil {
+  background: linear-gradient(115deg, #f3cfc8 0%, #d99a95 32%, #f6dcd5 52%, #b8706b 78%, #9e5a57 100%);
+}
+/* Soft glow ("lumi" = light) */
+@utility glow-blush {
+  background: radial-gradient(closest-side, rgb(255 255 255 / 0.9), rgb(254 228 232 / 0.6) 45%, transparent 75%);
+}
+@utility sparkle-dots {
+  background-image: radial-gradient(rgb(184 112 107 / 0.18) 1px, transparent 1.4px);
+  background-size: 18px 18px;
+}
+
+@keyframes kl-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-3deg); }
+  50% { transform: translate3d(0, -12px, 0) rotate(-1deg); }
+}
+@keyframes kl-twinkle {
+  0%, 100% { opacity: 0.25; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+@keyframes kl-adapt {
+  0%, 15% { background-color: #fbe3e6; box-shadow: inset 0 0 0 1px rgb(184 112 107 / 0.15); }
+  50% { background-color: #f3a9b5; }
+  85%, 100% { background-color: #d9667e; }
+}
+@keyframes kl-drawer-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes kl-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@utility animate-float {
+  animation: kl-float 7s ease-in-out infinite;
+}
+@utility animate-twinkle {
+  animation: kl-twinkle 3.2s ease-in-out infinite;
+}
+@utility animate-adapt {
+  animation: kl-adapt 5s ease-in-out infinite alternate;
+}
+@utility animate-drawer {
+  animation: kl-drawer-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@utility animate-fade {
+  animation: kl-fade-in 0.2s ease-out;
+}
