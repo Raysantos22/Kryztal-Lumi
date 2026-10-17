@@ -1,8 +1,8 @@
 # Kryztal Lumi — Online Shop
 
 The online shop for **Kryztal Lumi**, a Filipino beauty brand. It launches with one product, the
-**Crystal Blush** (a tone-adapt, colour-changing crystal blush, ₱399), and the catalogue is built to hold
-any beauty or fashion product later.
+**Crystal Blush** (a color-changing blush in a clear round compact, ₱399), and the catalogue is built to
+hold any beauty or fashion product later.
 
 It is a React + Vite + Tailwind front end on top of Supabase (Postgres, Auth, Storage, Edge Functions).
 
@@ -125,7 +125,20 @@ The catalogue is not tied to the Crystal Blush:
 - **Badges** are *New* and *Best seller* (both manual), plus *Only X left* and *Sold out* (both
   automatic, from stock).
 - The home page is a launch page written for the Crystal Blush (`LAUNCH_SLUG` in
-  `src/pages/Home.jsx`). If another product is featured, the home page shows the regular shop grid.
+  `src/content/crystalBlush.js`). If another product is featured, the home page shows the regular shop grid.
+
+### Where content lives
+
+| What | Where | Edited by |
+|---|---|---|
+| Price, stock, variants, max per order, product name/subtitle/description/how-to-use/specs/ingredients, product photos | database (`products`, `product_images`) | owner in **Admin → Products** |
+| Shipping zones, COD/GCash, FAQ, About text, policies, announcement bar, socials | database (`store_settings`, `shipping_zones`) | owner in **Admin → Settings / Shipping** |
+| Home page marketing copy (hero, Meet Crystal Blush, shade, features, lifestyle, how to use, closing) and the vegan / cruelty-free claim switches (`CLAIMS`, both off) | `src/content/crystalBlush.js` | developer |
+| Every storefront image: source file, crop, sizes, alt text, where it's used, and the list of supplied images that are not used | `src/content/assets.js` (+ `npm run images`) | developer |
+
+While the database still holds only the four placeholder images from the first seed (the old black carton),
+the product page and shop show the curated gallery from `assets.js` instead (`productImages()` in
+`src/lib/catalog.js`). As soon as the product has any other photo in the database, the database wins.
 
 ## 3. Local development with Supabase (needs Docker)
 
@@ -165,9 +178,13 @@ npx supabase db push                          # all migrations (tables, RLS, fun
    select vault.create_secret('https://<project-ref>.supabase.co', 'project_url');
    select vault.create_secret('<same long random string as NOTIFY_WEBHOOK_SECRET>', 'notify_webhook_secret');
    ```
-4. **Owner login.** Point `.env.local` at the cloud project, then run `npm run create-admin`. New-order
+4. **Content refresh (once, for the redesign).** Review and run `supabase/manual/crystal-blush-refresh.sql` in
+   the SQL editor. It replaces the old product copy and placeholder images with the current ones, clears the
+   unconfirmed specs/ingredients, and has an optional FAQ block. Price, stock and orders are untouched. After a
+   template change, redeploy the functions (`npm run functions:deploy`) so emails use the new design.
+5. **Owner login.** Point `.env.local` at the cloud project, then run `npm run create-admin`. New-order
    alerts go to that email until the owner changes it in *Admin → Settings*.
-5. **Auth.** Under *Authentication → Providers → Email*, turn **off** "Allow new users to sign up". Only
+6. **Auth.** Under *Authentication → Providers → Email*, turn **off** "Allow new users to sign up". Only
    the owner needs a login, and the admin role comes from `admin_users`. Set the Site URL to your domain.
 
 ### Vercel (frontend)
@@ -214,16 +231,18 @@ twice. The admin's *Resend email* button forces a resend.
 
 ## 7. Images
 
-`npm run images` rebuilds every web image from `_client/` with sharp:
+`npm run images` rebuilds every web image from `_client/` with sharp. The originals in `_client/` are never
+changed.
 
-- the clean transparent logo (WebP, PNG and email PNG)
-- the sparkle favicon (SVG and PNGs)
-- the crisp render of the Crystal Blush box
-- the illustrated blush pan
-- crops of the packaging mockup
-- the 1200×630 Open Graph image
-- stand-in "photography" for the home page: a flat lay and a podium scene. Replace them
-  with real photos when you have them (same file names in `public/images/`).
+- **Product, shade and lifestyle images:** one responsive WebP set per entry in `src/content/assets.js`, written to
+  `public/images/cb/<slug>-<width>.webp`. To replace an image, put the new file in `_client/`, point the entry's
+  `source` at it (update `width`/`height`, or the `crop`), run `npm run images`, and check the page.
+- **Logo:** the dusty-rose "kryztal lumi" wordmark (`logo.webp`, `logo-sm.webp`, `logo-email.png`), recoloured
+  to the exact logo rose (#b45a5c) and cleaned of stray semi-transparent pixels. Proportions are untouched.
+- **Favicons** (`favicon-32/48.png`, `apple-touch-icon.png`, `icon-512.png`) and `monogram.webp`, from the "kl" monogram.
+- **`og-image.jpg`:** the 1200×630 social share image.
+- **Legacy:** renders of the old black carton (`product-box`, `product-pan`, `product-mockup`, `product-back`).
+  They stay only while the live database still points at them; the refresh SQL removes those references.
 
 Product photos the owner uploads go to Supabase Storage.
 
@@ -231,12 +250,12 @@ Product photos the owner uploads go to Supabase Storage.
 
 | Command | What it checks |
 |---|---|
-| `npm run test:db` | 48 Postgres tests on PGlite with the real migrations. They cover pricing from the DB, totals, zones and free shipping, minimum order, stock reservation and oversell refusal, multi-line rollback, variants, the anti-spam cap, GCash expiry and late-payment reinstatement, the status machine, restock-once, admin list and stats, RLS, column grants, storage policies, and a check that no function is executable by `anon` unless intended. |
+| `npm run test:db` | 49 Postgres tests on PGlite with the real migrations. They cover pricing from the DB, totals, zones and free shipping, minimum order, stock reservation and oversell refusal, multi-line rollback, variants, the anti-spam cap, GCash expiry and late-payment reinstatement, the status machine, restock-once, admin list and stats, RLS, column grants, storage policies, and a check that no function is executable by `anon` unless intended. |
 | `npm run test:functions` | Deno tests for the email templates (escaping, content), the provider HTTP calls, phone formatting, channel selection, and create-order payload validation. |
 | `npm run check:functions` | Type-checks the three edge functions. |
-| `npm run test:e2e` | 12 Playwright flows × desktop and Pixel 7, against demo mode. They cover every public page, COD and GCash checkout, the bag drawer, validation, the order cap, low stock and sold out, the full admin order flow with tracking, mark-paid, cancel and restock, product, variant and photo CRUD, shipping zones, free shipping, settings, categories, and horizontal scroll. |
+| `npm run test:e2e` | 15 Playwright flows × desktop and Pixel 7, against demo mode. They cover every public page, the gallery (thumbnails, zoom dialog, keyboard), quantity sync between the buy box, order form and bag, the phone menu and sticky buy bar, COD and GCash checkout, the bag drawer, validation, the order cap, low stock and sold out, the full admin order flow with tracking, mark-paid, cancel and restock, product, variant and photo CRUD, shipping zones, free shipping, settings, categories, and horizontal scroll. |
 | `npm run lint` | oxlint |
-| `npm run screenshots` | Screenshots every page at 390, 820, 1180 and 1440 px into `screenshots/` (needs `npx vite --port 5174` running in demo mode). |
+| `npm run screenshots` | Screenshots every page at 360, 390, 768 and 1440 px into `screenshots/` (`WIDTHS=390,1440` to limit) (needs `npx vite --port 5174` running in demo mode). |
 
 The first run needs `npx playwright install chromium`.
 
@@ -250,14 +269,16 @@ The first run needs `npx playwright install chromium`.
 src/
   pages/            Home, Shop, Product, Bag, Checkout, OrderPlaced, Track, Info (About/FAQ/Shipping/Contact), NotFound
   pages/admin/      AdminApp (login gate + layout), Dashboard, Orders, Products, Categories, Shipping, Settings
-  components/       Layout (header/footer/announcement/Messenger), BagDrawer, ProductCard, OrderDetails, GcashPayment, ui, icons
-  lib/              api/ (supabase + demo), StoreContext, BagContext, AuthContext, catalog, format, ph (provinces), useSeo
+  components/       Layout (header/menu/footer/announcement/Messenger), Gallery, OrderForm, BagDrawer, ProductCard, Features, Community, OrderDetails, GcashPayment, ui, icons
+  content/          assets.js (image map) · crystalBlush.js (launch-product copy + claim switches)
+  lib/              api/ (supabase + demo), StoreContext, BagContext, AuthContext, catalog, format, ph (provinces), useSeo, useDialog
 supabase/
   migrations/       schema · RLS · order functions · storage + cron + notify trigger
   seed.sql          store settings, zones, Crystal Blush (placeholders marked)
+  manual/           crystal-blush-refresh.sql (one-off content refresh for the live database; not a migration)
   functions/        create-order · send-order-update · expire-unpaid-orders · _shared · tests
 scripts/            build-images · create-admin · screenshots · preview-emails
 tests/db/           Postgres tests (vitest + PGlite)
 tests/e2e/          Playwright
-_client/            the client's brief, logo and packaging mockup (source files)
+_client/            the client's brief and source images: brand/ (logos), photos/, graphics/, mockups/ (old carton)
 ```

@@ -24,7 +24,7 @@ export default function Shop() {
 
   useSeo({
     title: 'Shop',
-    description: 'Shop Kryztal Lumi beauty: Crystal Blush and more. Cash on delivery, fast shipping nationwide in the Philippines.',
+    description: 'Shop Kryztal Lumi beauty, starting with Crystal Blush, our color-changing blush. Nationwide shipping in the Philippines.',
   })
 
   // Only show categories that actually have products.
@@ -47,7 +47,7 @@ export default function Shop() {
   return (
     <div className="pb-20">
       <PageHeader eyebrow="The collection" title="Shop">
-        Crystal-clear beauty, made to glow on every skin tone.
+        Beauty from Kryztal Lumi, starting with Crystal Blush.
       </PageHeader>
       <div className="container-page pt-8">
         {showSearch && (

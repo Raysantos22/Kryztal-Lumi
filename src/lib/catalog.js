@@ -1,3 +1,6 @@
+import { ASSETS, LAUNCH_GALLERY, assetUrl } from '../content/assets.js'
+import { LAUNCH_SLUG } from '../content/crystalBlush.js'
+
 // Catalogue rules shared by the shop, product page, bag and admin.
 // A product either has active variants (each with its own price + stock)
 // or uses its own price + stock.
@@ -22,7 +25,22 @@ export function priceRange(product) {
   return { min: Math.min(...prices), max: Math.max(...prices) }
 }
 
-export const primaryImage = (product) => product?.images?.[0] || null
+// Placeholder images from the first seed (the old black carton). They stay
+// in the live database until supabase/manual/crystal-blush-refresh.sql is
+// run, but they no longer show the current product.
+const LEGACY_IMAGE_URLS = new Set(['/images/product-box.webp', '/images/product-pan.webp', '/images/product-mockup.webp', '/images/product-back.webp'])
+
+// Photos to show for a product: its images from the database (Admin →
+// Products), minus the legacy placeholders. The launch product falls back
+// to the curated gallery in content/assets.js while it has none.
+export function productImages(product) {
+  if (!product) return []
+  const images = (product.images || []).filter((i) => !LEGACY_IMAGE_URLS.has(i.url))
+  if (images.length || product.slug !== LAUNCH_SLUG) return images
+  return LAUNCH_GALLERY.map((key) => ({ id: key, url: assetUrl(key), alt: ASSETS[key].alt }))
+}
+
+export const primaryImage = (product) => productImages(product)[0] || null
 
 // Badges in display order: Sold out · Only X left · New · Best seller
 export function productBadges(product, { lowStockThreshold = 5, variant = null } = {}) {
@@ -70,10 +88,4 @@ export function shippingFee(settings, zone, subtotal) {
   if (settings?.free_shipping_mode === 'all') return 0
   if (settings?.free_shipping_mode === 'threshold' && subtotal >= Number(settings.free_shipping_threshold)) return 0
   return Number(zone.fee)
-}
-
-// "1.8 g / 0.063 oz" → "1.8 g" (shown as a tag on product photos)
-export function sizeTag(product) {
-  const spec = (product?.specs || []).find((s) => /net\s*w|size|volume/i.test(s.label))
-  return spec ? spec.value.split('/')[0].trim() : null
 }

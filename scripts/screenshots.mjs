@@ -1,5 +1,6 @@
-// Screenshot every page at phone, tablet (portrait + landscape) and desktop
-// widths against the demo dev server, and report horizontal overflow.
+// Screenshot every page at small phone, phone, tablet and desktop widths
+// against the demo dev server, and report horizontal overflow.
+// WIDTHS=390,1440 limits the widths.
 //   npx vite --port 5174 (demo mode)   then   npm run screenshots [-- page1,page2] [-- --full]
 // Output: screenshots/<page>-<width>.png
 import { chromium } from '@playwright/test'
@@ -7,11 +8,11 @@ import { mkdirSync } from 'node:fs'
 
 const BASE = process.env.BASE_URL || 'http://localhost:5174'
 const WIDTHS = [
+  { w: 360, h: 780 },
   { w: 390, h: 844 },
-  { w: 820, h: 1180 },
-  { w: 1180, h: 820 },
+  { w: 768, h: 1024 },
   { w: 1440, h: 900 },
-]
+].filter((v) => !process.env.WIDTHS || process.env.WIDTHS.split(',').includes(String(v.w)))
 const args = process.argv.slice(2)
 const full = args.includes('--full')
 const only = args.find((a) => !a.startsWith('--'))?.split(',')
@@ -55,8 +56,7 @@ const PAGES = [
   { name: 'bag', path: '/bag', bag: true },
   { name: 'drawer', path: '/shop', bag: true, action: async (p) => p.locator('[data-testid=bag-button]:visible').first().click() },
   { name: 'checkout', path: '/checkout', bag: true, action: async (p) => {
-      await p.getByLabel('Province').selectOption('Cebu')
-      await p.getByLabel('GCash').check()
+      await p.getByLabel('Province', { exact: true }).selectOption('Cebu')
     } },
   { name: 'order-placed', path: `/order/${orders.placed}`, session: [orders.placed, '0917 555 0101'] },
   { name: 'track', path: `/track?order=${orders.cod}`, action: async (p) => {
@@ -104,6 +104,17 @@ for (const vp of WIDTHS) {
     await page.waitForLoadState('networkidle')
     await page.waitForFunction(() => !document.querySelector('[role=status]'), null, { timeout: 60_000 }).catch(() => {})
     if (pg.action) await pg.action(page)
+    if (!pg.action) {
+      // Scroll through the page so lazy-loaded images are in the screenshot.
+      await page.evaluate(async () => {
+        for (let y = 0; y < document.body.scrollHeight; y += window.innerHeight) {
+          window.scrollTo(0, y)
+          await new Promise((r) => setTimeout(r, 120))
+        }
+        window.scrollTo(0, 0)
+      })
+      await page.waitForLoadState('networkidle')
+    }
     await page.waitForTimeout(400)
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     if (overflow > 1) problems.push(`${pg.name}@${vp.w}: horizontal overflow ${overflow}px`)

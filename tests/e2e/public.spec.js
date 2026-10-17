@@ -1,20 +1,27 @@
 import { test, expect } from '@playwright/test'
-import { PRODUCT_ID, api, bagButton, checkout, enableGcash, expectNoHorizontalScroll, orderNow, quickOrder, toCheckoutViaBag, visible, waitForApp, watchErrors } from './helpers.js'
+import { PRODUCT_ID, api, bagButton, checkout, enableGcash, expectNoHorizontalScroll, openOrderForm, orderNow, quickOrder, toCheckoutViaBag, visible, waitForApp, watchErrors } from './helpers.js'
 
 test('every public page renders without errors or horizontal scroll', async ({ page }) => {
   const errors = watchErrors(page)
 
   await page.goto('/')
   await waitForApp(page)
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Crystal')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('A little color.A little Lumi.')
   await expect(page.getByTestId('hero-price')).toHaveText('₱399')
-  await expect(page.getByTestId('ingredients')).toContainText('D&C RED NO.22', { ignoreCase: true })
-  await expect(page.getByTestId('banner-product')).toContainText('Crystal Blush')
-  await expect(page.getByRole('heading', { name: 'Glow notes' })).toBeVisible()
-  await expect(page.getByTestId('community-track')).toContainText('Fast shipping')
-  await expect(page.getByTestId('community-track')).toContainText('Cash on delivery')
-  await expect(page.getByText('How does a tone-adapt blush change colour?')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Shop Crystal Blush' }).first()).toHaveAttribute('href', '/product/crystal-blush')
+  await expect(page.getByRole('heading', { name: 'Meet Crystal Blush' })).toBeVisible()
+  await expect(page.getByTestId('shade-note')).toHaveText('Shade appearance may vary.')
+  await expect(page.getByText('Illustrative concept, not actual stage photos.')).toBeVisible()
+  await expect(page.getByText('What is Crystal Blush?')).toBeVisible()
   await expect(page.getByTestId('announcement')).toContainText('Cash on delivery')
+  // Unconfirmed claims and the old product description stay off the page
+  await expect(page.locator('main')).not.toContainText(/vegan|cruelty-free|tone-adapt|undertone|1\.8 g/i)
+  // Community section only appears once the owner adds real posts
+  await expect(page.getByTestId('community-track')).toHaveCount(0)
+  // The hero image loads first; images further down are lazy
+  await expect(page.locator('img[fetchpriority=high]').first()).toHaveAttribute('src', /hero-podium/)
+  await page.getByRole('link', { name: 'Explore the shade' }).click()
+  await expect(page.getByRole('heading', { name: 'See the shade' })).toBeInViewport()
   // No socials / Messenger configured yet → hidden
   await expect(page.getByRole('link', { name: 'Message us on Facebook Messenger' })).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Instagram' })).toHaveCount(0)
@@ -31,7 +38,10 @@ test('every public page renders without errors or horizontal scroll', async ({ p
   const ld = JSON.parse(await page.locator('#kl-jsonld').textContent())
   expect(ld).toMatchObject({ '@type': 'Product', name: 'Crystal Blush', offers: { price: '399.00', priceCurrency: 'PHP', availability: 'https://schema.org/InStock' } })
   await expect(page).toHaveTitle(/Crystal Blush/)
-  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /product-box\.webp$/)
+  await expect(page.locator('meta[property="og:image"]')).toHaveAttribute('content', /compact-top-1254\.webp$/)
+  await expect(page.getByTestId('product-main-image')).toHaveAttribute('src', /compact-top/)
+  // The order form stays closed until "Order now"
+  await expect(page.getByTestId('order-form')).toHaveCount(0)
   await expectNoHorizontalScroll(page)
 
   for (const [path, heading] of [
@@ -133,10 +143,7 @@ test('cash on delivery only by default; order form validation, unlisted province
   await expect(page.getByRole('radio', { name: /Cash on delivery/ })).toBeChecked()
   await expect(page.getByRole('radio', { name: /GCash/ })).toHaveCount(0)
 
-  await page.goto('/')
-  await waitForApp(page)
-  await page.getByRole('button', { name: /^Order now/ }).first().click()
-  const form = page.getByTestId('order-form')
+  const form = await openOrderForm(page)
   await form.getByRole('button', { name: /^Place order/ }).click()
   await expect(form.getByText('Please enter your full name.')).toBeVisible()
   await expect(form.getByText(/valid mobile number/)).toBeVisible()
@@ -153,8 +160,7 @@ test('cash on delivery only by default; order form validation, unlisted province
 
   // Three unconfirmed orders per phone, the fourth is refused by the database
   for (let i = 0; i < 3; i++) await orderNow(page, { phone: '0918 111 2222' })
-  await page.goto('/')
-  await waitForApp(page)
+  await openOrderForm(page)
   await quickOrder(page, { phone: '09181112222', expectError: 'already have 3 orders' })
 })
 
@@ -169,12 +175,12 @@ test('low stock and sold out are shown and enforced', async ({ page }) => {
 
   await page.goto('/product/crystal-blush')
   await expect(page.getByTestId('badge-low-stock')).toHaveText('Only 2 left')
-  const form = page.getByTestId('order-form')
-  await form.getByRole('button', { name: 'Increase quantity' }).click()
-  await expect(form.getByRole('button', { name: 'Increase quantity' })).toBeDisabled()
+  await page.getByRole('button', { name: 'Increase quantity' }).click()
+  await expect(page.getByRole('button', { name: 'Increase quantity' })).toBeDisabled()
 
-  // Another shopper buys both while this bag still has 2
+  // Another shopper buys both while this bag still has 2 (the quantity chosen above)
   await page.getByRole('button', { name: 'Add to bag' }).click()
+  await expect(page.getByRole('dialog', { name: 'Your bag' }).getByTestId('bag-subtotal')).toHaveText('₱798')
   await page.keyboard.press('Escape')
   await api(page, async (api, id) => {
     await api.createOrder({
@@ -190,8 +196,10 @@ test('low stock and sold out are shown and enforced', async ({ page }) => {
   await page.goto('/product/crystal-blush')
   await expect(page.getByTestId('badge-sold-out')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Sold out' })).toBeDisabled()
+  await expect(page.getByRole('button', { name: 'Add to bag' })).toBeDisabled()
+  await expect(page.getByTestId('availability')).toHaveText('Sold out')
   await page.goto('/')
-  await expect(visible(page.getByRole('button', { name: 'Sold out' }))).toBeDisabled()
+  await expect(page.getByTestId('hero-sold-out')).toBeVisible()
 })
 
 async function checkoutExpectStockError(page) {
@@ -199,3 +207,82 @@ async function checkoutExpectStockError(page) {
   await expect(page.getByText('Sold out').first()).toBeVisible()
   await expect(page.getByRole('button', { name: /^Place order/ })).toBeDisabled()
 }
+
+test('quantity stays in sync between the buy box, the order form, the sticky bar and the bag', async ({ page }) => {
+  const errors = watchErrors(page)
+  await page.goto('/product/crystal-blush')
+  await waitForApp(page)
+  await page.getByRole('button', { name: 'Increase quantity' }).click()
+  await page.getByRole('button', { name: 'Order now' }).first().click()
+  const form = page.getByTestId('order-form')
+  await expect(form).toBeVisible()
+  await expect(form.getByLabel('Full Name')).toBeFocused()
+  await expect(page.getByTestId('order-form-summary')).toContainText('Crystal Blush × 2')
+  await form.getByLabel('Province').selectOption('Metro Manila')
+  await expect(page.getByTestId('order-form-total')).toHaveText('₱898')
+  // Changing it in the form changes it in the buy box too
+  await form.getByRole('button', { name: 'Increase quantity' }).click()
+  await expect(page.getByTestId('order-form-summary')).toContainText('Crystal Blush × 3')
+  await expect(page.getByRole('group', { name: 'Quantity' }).first()).toContainText('3')
+  await page.getByRole('button', { name: 'Add to bag' }).click()
+  await expect(page.getByRole('dialog', { name: 'Your bag' }).getByTestId('bag-subtotal')).toHaveText('₱1,197')
+  await page.keyboard.press('Escape')
+  await expect(bagButton(page)).toHaveAccessibleName('Open bag, 3 items')
+  expect(errors).toEqual([])
+})
+
+test('gallery: thumbnails, arrows and the zoom dialog work with the keyboard', async ({ page }) => {
+  const errors = watchErrors(page)
+  await page.goto('/product/crystal-blush')
+  await waitForApp(page)
+  const thumbs = page.getByRole('group', { name: 'Choose a photo' }).getByRole('button')
+  await expect(thumbs).toHaveCount(7)
+  await thumbs.nth(2).click()
+  await expect(thumbs.nth(2)).toHaveAttribute('aria-current', 'true')
+  await expect(page.getByTestId('product-main-image')).toHaveAttribute('src', /pan-closeup/)
+
+  await page.getByTestId('product-main-image').click()
+  const zoom = page.getByRole('dialog', { name: 'Crystal Blush photos' })
+  await expect(zoom).toBeVisible()
+  await expect(zoom.getByRole('button', { name: 'Close photos' })).toBeFocused()
+  await expect(zoom).toContainText('Photo 3 of 7')
+  await page.keyboard.press('ArrowRight')
+  await expect(zoom).toContainText('Photo 4 of 7')
+  await page.keyboard.press('ArrowLeft')
+  await page.keyboard.press('ArrowLeft')
+  await expect(zoom).toContainText('Photo 2 of 7')
+  // Focus stays inside the dialog
+  for (let i = 0; i < 6; i++) await page.keyboard.press('Tab')
+  expect(await zoom.evaluate((el) => el.contains(document.activeElement))).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(zoom).toHaveCount(0)
+  await expect(thumbs.nth(1)).toHaveAttribute('aria-current', 'true')
+  await expectNoHorizontalScroll(page)
+  expect(errors).toEqual([])
+})
+
+test('phones: the menu is a dialog that keeps focus and closes with Escape; the sticky buy bar appears after the buy box', async ({ page, isMobile }) => {
+  test.skip(!isMobile, 'phone layout only')
+  const errors = watchErrors(page)
+  await page.goto('/product/crystal-blush')
+  await waitForApp(page)
+  const menuButton = page.getByRole('button', { name: 'Open menu' })
+  await menuButton.click()
+  const menu = page.getByRole('dialog', { name: 'Menu' })
+  await expect(menu).toBeVisible()
+  await expect(menu.getByRole('link', { name: 'Track order' })).toBeVisible()
+  for (let i = 0; i < 12; i++) await page.keyboard.press('Tab')
+  expect(await menu.evaluate((el) => el.contains(document.activeElement))).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(menu).toHaveCount(0)
+  await expect(menuButton).toBeFocused()
+
+  await expect(page.getByTestId('sticky-buy')).toHaveCount(0)
+  await page.getByRole('heading', { name: 'About Crystal Blush' }).evaluate((el) => el.scrollIntoView({ block: 'start' }))
+  const bar = page.getByTestId('sticky-buy')
+  await expect(bar).toBeVisible()
+  await bar.getByRole('button', { name: 'Order now' }).click()
+  await expect(page.getByTestId('order-form')).toBeVisible()
+  await expect(bar).toHaveCount(0)
+  expect(errors).toEqual([])
+})

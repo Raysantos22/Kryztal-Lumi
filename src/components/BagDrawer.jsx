@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { Trash2, X } from 'lucide-react'
 import { useBag } from '../lib/BagContext.jsx'
 import { useStore } from '../lib/StoreContext.jsx'
+import { useDialog } from '../lib/useDialog.js'
 import { formatMoney } from '../lib/format.js'
 import { ImagePlaceholder, QuantityInput } from './ui.jsx'
 import { Sparkle } from './icons.jsx'
@@ -13,9 +14,9 @@ export function BagLine({ item, editable = true, compact = false }) {
   const name = item.product?.name || 'Unavailable item'
   return (
     <li className="flex gap-4 py-4" data-testid="bag-line">
-      <div className={`shrink-0 overflow-hidden rounded-md bg-blush-100 ${compact ? 'h-16 w-16' : 'h-20 w-20 sm:h-24 sm:w-24'}`}>
+      <div className={`shrink-0 overflow-hidden rounded-lg bg-white ring-1 ring-rose-100 ${compact ? 'h-16 w-16' : 'h-20 w-20 sm:h-24 sm:w-24'}`}>
         {item.image ? (
-          <img src={item.image} alt="" className="h-full w-full object-cover" loading="lazy" />
+          <img src={item.image} alt="" className="h-full w-full object-contain" loading="lazy" />
         ) : (
           <ImagePlaceholder className="h-full w-full" />
         )}
@@ -72,7 +73,7 @@ export function BagLine({ item, editable = true, compact = false }) {
 export function FreeShippingNote({ subtotal }) {
   const { settings } = useStore()
   if (settings?.free_shipping_mode === 'all') {
-    return <p className="text-xs text-rose-700">✨ Free shipping on every order</p>
+    return <p className="text-xs text-rose-700">Free shipping on every order</p>
   }
   if (settings?.free_shipping_mode !== 'threshold') return null
   const threshold = Number(settings.free_shipping_threshold)
@@ -86,11 +87,11 @@ export function FreeShippingNote({ subtotal }) {
             Add <strong>{formatMoney(left)}</strong> more for free shipping
           </>
         ) : (
-          '✨ You get free shipping!'
+          'You get free shipping!'
         )}
       </p>
       <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-rose-100" aria-hidden="true">
-        <div className="bg-foil h-full transition-all" style={{ width: `${pct}%` }} />
+        <div className="h-full bg-rose-500 transition-all" style={{ width: `${pct}%` }} />
       </div>
     </div>
   )
@@ -106,26 +107,14 @@ export default function BagDrawer() {
     setOpen(false)
   }, [pathname, setOpen])
 
-  useEffect(() => {
-    if (!open) return
-    const prev = document.activeElement
-    closeRef.current?.focus()
-    const onKey = (e) => e.key === 'Escape' && setOpen(false)
-    window.addEventListener('keydown', onKey)
-    const overflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = overflow
-      prev?.focus?.()
-    }
-  }, [open, setOpen])
+  const dialog = useDialog(open, () => setOpen(false), closeRef)
 
   if (!open) return null
   return (
     <div className="fixed inset-0 z-[60]">
       <div className="animate-fade absolute inset-0 bg-noir/40" onClick={() => setOpen(false)} aria-hidden="true" />
       <aside
+        ref={dialog}
         role="dialog"
         aria-modal="true"
         aria-label="Your bag"
@@ -141,7 +130,7 @@ export default function BagDrawer() {
         </div>
         {items.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
-            <Sparkle className="h-10 w-10" gradient />
+            <Sparkle className="h-10 w-10 text-rose-400" />
             <p className="font-display text-2xl text-noir">Your bag is empty</p>
             <Link to="/shop" className="btn-outline" onClick={() => setOpen(false)}>
               Shop now
@@ -157,7 +146,7 @@ export default function BagDrawer() {
             <div className="space-y-4 border-t border-rose-100 px-5 py-5">
               <FreeShippingNote subtotal={subtotal} />
               <div className="flex items-baseline justify-between">
-                <span className="tracked-caps text-[0.7rem]">Subtotal</span>
+                <span className="text-sm font-medium">Subtotal</span>
                 <span className="font-display text-2xl tabular-nums" data-testid="bag-subtotal">
                   {formatMoney(subtotal)}
                 </span>
@@ -166,7 +155,7 @@ export default function BagDrawer() {
               <button type="button" className="btn-solid w-full" disabled={hasProblems} onClick={() => navigate('/checkout')}>
                 Checkout
               </button>
-              <Link to="/bag" className="block text-center text-xs tracking-[0.2em] text-muted uppercase hover:text-noir">
+              <Link to="/bag" className="block py-1 text-center text-sm text-muted underline-offset-4 hover:text-noir hover:underline">
                 View bag
               </Link>
             </div>

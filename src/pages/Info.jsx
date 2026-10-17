@@ -7,6 +7,7 @@ import { useAsync } from '../lib/useAsync.js'
 import { useStore } from '../lib/StoreContext.jsx'
 import { useSeo } from '../lib/useSeo.js'
 import { formatMoney, messengerLink, socialLinks, telLink, viberLink, whatsappLink } from '../lib/format.js'
+import { img } from '../content/assets.js'
 import { Eyebrow, PageHeader } from '../components/ui.jsx'
 import { SOCIAL_ICONS, Sparkle } from '../components/icons.jsx'
 
@@ -16,37 +17,38 @@ function Prose({ children }) {
 
 export function About() {
   const { settings } = useStore()
-  useSeo({ title: 'About', description: 'About Kryztal Lumi — crystal-clear beauty that glows on every skin tone.' })
+  const { products } = useStore()
+  const only = products.length === 1 ? products[0] : null
+  useSeo({ title: 'About', description: 'About Kryztal Lumi, the Filipino beauty label behind Crystal Blush, our color-changing blush.' })
   return (
     <div className="pb-20">
       <PageHeader eyebrow="Our story" title="About Kryztal Lumi">
         {settings?.tagline}
       </PageHeader>
       <div className="container-page grid gap-12 py-14 md:grid-cols-[1fr_1.2fr] md:items-center">
-        <div className="relative overflow-hidden rounded-sm bg-noir p-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(184,112,107,0.4),transparent_60%)]" aria-hidden="true" />
-          <img src="/images/logo-sm.webp" alt="Kryztal Lumi logo" width="420" height="225" loading="lazy" className="relative mx-auto w-4/5" />
+        <div className="overflow-hidden rounded-3xl bg-pearl">
+          <img {...img('lifestyleBrush', '(min-width: 768px) 45vw, 100vw')} loading="lazy" className="aspect-[4/3] h-auto w-full object-cover object-[70%_50%]" />
         </div>
         <div>
           <Eyebrow>Kryztal · Lumi</Eyebrow>
-          <h2 className="mt-3 font-display text-4xl text-noir">Crystal, and light.</h2>
+          <h2 className="mt-3 font-display text-4xl text-noir">Starting with one blush</h2>
           <div className="mt-5">
             <Prose>{settings?.about}</Prose>
           </div>
           <ul className="mt-8 grid gap-4 sm:grid-cols-3">
             {[
-              ['Made to glow', 'Products that catch the light and look like you, only brighter.'],
-              ['Every skin tone', 'We choose formulas that adapt, so one product suits many.'],
-              ['Small batches', 'We launch slowly and only what we truly love.'],
+              ['Starting small', 'We begin with one product, Crystal Blush, and add new pieces slowly.'],
+              ['Easy to order', 'Order online without an account and follow your parcel on Track order.'],
+              ['Nationwide', 'We ship to every province in the Philippines.'],
             ].map(([t, b]) => (
-              <li key={t} className="border-t border-noir pt-4">
-                <h3 className="tracked-caps font-sans text-[0.68rem] text-noir">{t}</h3>
+              <li key={t} className="border-t border-rose-300 pt-4">
+                <h3 className="font-sans text-sm font-semibold text-noir">{t}</h3>
                 <p className="mt-2 text-sm text-muted">{b}</p>
               </li>
             ))}
           </ul>
-          <Link to="/shop" className="btn-solid mt-10">
-            Shop the collection
+          <Link to={only ? `/product/${only.slug}` : '/shop'} className="btn-solid mt-10">
+            {only ? `Shop ${only.name}` : 'Shop the collection'}
           </Link>
         </div>
       </div>
@@ -59,7 +61,7 @@ export function Faq() {
   const faq = settings?.faq || []
   useSeo({
     title: 'FAQ',
-    description: 'Answers about Crystal Blush, cash on delivery, delivery times and returns.',
+    description: 'Answers about Crystal Blush, ordering, cash on delivery, delivery times and returns.',
     jsonLd: faq.length
       ? {
           '@context': 'https://schema.org',
@@ -78,7 +80,7 @@ export function Faq() {
           <div className="divide-y divide-rose-200 border-y border-rose-200">
             {faq.map((f, i) => (
               <details key={i} className="group py-5" open={i === 0}>
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-xl text-noir sm:text-2xl">
+                <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-4 text-lg font-medium text-noir">
                   {f.q}
                   <span className="text-2xl text-rose-500 transition group-open:rotate-45" aria-hidden="true">
                     +
@@ -137,7 +139,7 @@ export function ShippingReturns() {
               </tbody>
             </table>
           </div>
-          {free && <p className="mt-3 text-sm text-rose-700">✨ {free}</p>}
+          {free && <p className="mt-3 text-sm font-medium text-rose-700">{free}</p>}
           {Number(settings?.min_order_amount) > 0 && (
             <p className="mt-2 text-sm text-muted">Minimum order: {formatMoney(settings.min_order_amount)}.</p>
           )}
@@ -191,7 +193,7 @@ export function Contact() {
       <div className="container-page max-w-3xl py-12">
         {methods.length === 0 && socials.length === 0 ? (
           <div className="rounded-xl bg-blush-50 p-8 text-center" data-testid="contact-empty">
-            <Sparkle className="mx-auto h-8 w-8" gradient />
+            <Sparkle className="mx-auto h-8 w-8 text-rose-500" />
             <p className="mt-4 text-noir">Our contact channels are opening soon.</p>
             <p className="mt-2 text-sm text-muted">
               Already ordered? You can check your order any time on the <Link to="/track" className="underline">Track order</Link> page.

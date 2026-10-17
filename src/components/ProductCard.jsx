@@ -3,12 +3,14 @@ import { useBag } from '../lib/BagContext.jsx'
 import { useStore } from '../lib/StoreContext.jsx'
 import { availableStock, hasVariants, priceRange, primaryImage, productBadges } from '../lib/catalog.js'
 import { formatMoney } from '../lib/format.js'
+import { assetKeyForUrl, img } from '../content/assets.js'
 import { ImagePlaceholder, ProductBadges } from './ui.jsx'
 
 export default function ProductCard({ product }) {
   const { settings } = useStore()
   const { add, setOpen } = useBag()
   const image = primaryImage(product)
+  const asset = image && assetKeyForUrl(image.url)
   const badges = productBadges(product, { lowStockThreshold: settings?.low_stock_threshold })
   const soldOut = availableStock(product) <= 0
   const { min, max } = priceRange(product)
@@ -16,16 +18,17 @@ export default function ProductCard({ product }) {
 
   return (
     <article className="group relative flex flex-col" data-testid="product-card">
-      <Link to={`/product/${product.slug}`} className="relative block overflow-hidden rounded-sm bg-blush-100">
+      <Link to={`/product/${product.slug}`} className="photo-frame relative block">
         {image ? (
           <img
+            {...(asset ? img(asset, '(min-width: 1024px) 360px, 50vw') : {})}
             src={image.url}
             alt={image.alt || product.name}
             loading="lazy"
-            className={`aspect-[4/5] w-full object-cover transition duration-700 group-hover:scale-[1.04] ${soldOut ? 'opacity-60' : ''}`}
+            className={`aspect-square h-auto w-full object-contain transition duration-500 group-hover:scale-[1.02] ${soldOut ? 'opacity-60' : ''}`}
           />
         ) : (
-          <ImagePlaceholder className="aspect-[4/5] w-full" />
+          <ImagePlaceholder className="aspect-square w-full" />
         )}
         <ProductBadges badges={badges} className="absolute top-3 left-3" />
       </Link>

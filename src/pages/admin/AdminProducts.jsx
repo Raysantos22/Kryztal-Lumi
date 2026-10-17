@@ -385,7 +385,7 @@ export function AdminProductEdit() {
               <input id="p-slug" className="input" value={f.slug} onChange={set('slug')} maxLength={80} />
             </Field>
             <Field label="Short tagline" htmlFor="p-subtitle" optional className="sm:col-span-2">
-              <input id="p-subtitle" className="input" value={f.subtitle || ''} onChange={set('subtitle')} maxLength={120} placeholder="e.g. Tone-adapt colour-changing blush" />
+              <input id="p-subtitle" className="input" value={f.subtitle || ''} onChange={set('subtitle')} maxLength={120} placeholder="e.g. Color-changing blush" />
             </Field>
             <Field label="Description" htmlFor="p-description" className="sm:col-span-2">
               <textarea id="p-description" className="input min-h-28" value={f.description || ''} onChange={set('description')} />
@@ -397,7 +397,7 @@ export function AdminProductEdit() {
               <textarea id="p-ingredients" className="input min-h-28" value={f.ingredients || ''} onChange={set('ingredients')} />
             </Field>
             <Field label="Highlights" htmlFor="p-highlights" optional hint="One per line, shown with hearts above the order form" className="sm:col-span-2">
-              <textarea id="p-highlights" className="input min-h-24" value={f.highlights} onChange={set('highlights')} placeholder={'Tone-adapt colour\nCruelty-free\nCash on delivery'} />
+              <textarea id="p-highlights" className="input min-h-24" value={f.highlights} onChange={set('highlights')} placeholder={'Color-changing formula\nCompact format\nFor cheeks'} />
             </Field>
             <Field label="Category" htmlFor="p-category" optional>
               <select id="p-category" className="input" value={f.category_id} onChange={set('category_id')}>

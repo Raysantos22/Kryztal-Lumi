@@ -2,10 +2,10 @@
 
 /* =====================================================================
    Kryztal Lumi design system
-   Derived from the logo (rose-gold foil serif + 4-point sparkle) and the
-   packaging (black box, rose-gold foil, blush-pink backdrop).
-   Rose gold · blush pink · ivory · black accents. Change tokens here and
-   the whole site follows.
+   Taken from the current Crystal Blush assets: warm ivory backgrounds,
+   soft blush accents, the dusty-rose logo colour (#b45a5c) for branding and
+   buttons, restrained rose-gold details (the podium rim), dark warm text.
+   Change tokens here and the whole site (shop + admin) follows.
    ===================================================================== */
 
 /* Side-by-side layouts: landscape screens >= 1024px, or any screen >= 1280px.
@@ -13,33 +13,39 @@
 @custom-variant split (@media (min-width: 1024px) and (orientation: landscape), (min-width: 1280px));
 
 @theme {
-  --font-sans: "Jost", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Cormorant Garamond", ui-serif, Georgia, serif;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "DM Serif Display", ui-serif, Georgia, serif;
 
-  /* Rose gold (500 = foil mid-tone; 600+ pass AA as text on ivory/blush) */
-  --color-rose-50: #fcf5f4;
-  --color-rose-100: #f8e7e4;
-  --color-rose-200: #f0d0ca;
-  --color-rose-300: #e3b0a8;
-  --color-rose-400: #d0918a;
-  --color-rose-500: #b8706b;
-  --color-rose-600: #9a5754;
-  --color-rose-700: #7e4544;
-  --color-rose-800: #66393a;
-  --color-rose-900: #4f2b2c;
+  /* Dusty rose. 500 = the logo colour (buttons, brand accents; white text on
+     it passes AA). Use 600+ for rose-coloured body text on ivory/blush. */
+  --color-rose-50: #fbf2f1;
+  --color-rose-100: #f6e2e0;
+  --color-rose-200: #ecc6c3;
+  --color-rose-300: #dda19e;
+  --color-rose-400: #c97e7e;
+  --color-rose-500: #b45a5c;
+  --color-rose-600: #9c484c;
+  --color-rose-700: #823b3f;
+  --color-rose-800: #683135;
+  --color-rose-900: #4a2c2e;
 
-  /* Blush backdrop (sampled from the packaging mockup) */
-  --color-blush-50: #fff6f7;
-  --color-blush-100: #feeef0;
-  --color-blush-200: #fee4e8;
-  --color-blush-300: #f9d0d6;
-  --color-blush-400: #f2b6c0;
+  /* Soft blush section accents (the pink photo backdrops) */
+  --color-blush-50: #fdf6f4;
+  --color-blush-100: #faece9;
+  --color-blush-200: #f5dcd8;
+  --color-blush-300: #eec9c4;
+  --color-blush-400: #e4b2ac;
 
-  --color-ivory: #fffaf6;
-  --color-pearl: #fbf6f3;
-  --color-noir: #121012;
-  --color-ink: #2a2123;
-  --color-muted: #6f6063;
+  /* Restrained rose gold (podium rim): hairlines and small details only */
+  --color-gold-300: #e2bfa8;
+  --color-gold-400: #cf9f84;
+  --color-gold-500: #b98264;
+
+  --color-ivory: #fbf5ef;
+  --color-pearl: #f6eee6;
+  --color-noir: #2e2021; /* darkest warm brown: headings, strong text */
+  --color-ink: #3e2e2f; /* body text */
+  --color-muted: #6f5d5d;
 }
 
 @layer base {
@@ -66,11 +72,11 @@
   h1,
   h2,
   h3 {
-    @apply font-display;
+    @apply font-display font-normal;
   }
-  /* Cormorant defaults to old-style figures (1 looks like I): use lining ones */
-  h1, h2, h3, .font-display {
-    font-variant-numeric: lining-nums;
+  :focus-visible {
+    outline: 2px solid var(--color-rose-600);
+    outline-offset: 2px;
   }
   ::selection {
     @apply bg-blush-300 text-noir;
@@ -81,14 +87,14 @@
   @apply mx-auto w-full max-w-6xl px-4 sm:px-6;
 }
 
-/* ---- Buttons: editorial outlined style (from the reference project) ---- */
+/* ---- Buttons: rounded pills, sentence case ---- */
 @utility btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition
     focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600
     disabled:cursor-not-allowed disabled:opacity-50;
 }
 @utility btn-primary {
-  @apply btn bg-noir text-ivory shadow-sm hover:bg-rose-800;
+  @apply btn bg-rose-500 text-white shadow-sm hover:bg-rose-600;
 }
 @utility btn-secondary {
   @apply btn border border-rose-200 bg-white text-rose-700 hover:bg-rose-50;
@@ -100,21 +106,22 @@
   @apply btn border border-red-200 bg-white text-red-700 hover:bg-red-50;
 }
 @utility btn-sm {
-  @apply px-3! py-1.5! text-xs!;
+  @apply min-h-0! px-3! py-1.5! text-xs!;
 }
-@utility btn-outline {
-  @apply inline-flex items-center justify-center gap-2 border border-noir bg-transparent px-7 py-3.5 text-[0.7rem] font-medium tracking-[0.28em] text-noir uppercase transition
-    hover:bg-noir hover:text-ivory focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-noir
+/* Storefront call-to-action sizes */
+@utility btn-solid {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-rose-500 bg-rose-500 px-7 py-3 text-[0.95rem] font-medium text-white shadow-sm shadow-rose-900/10 transition
+    hover:border-rose-600 hover:bg-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600
     disabled:cursor-not-allowed disabled:opacity-50;
 }
-@utility btn-solid {
-  @apply inline-flex items-center justify-center gap-2 border border-noir bg-noir px-7 py-3.5 text-[0.7rem] font-medium tracking-[0.28em] text-ivory uppercase transition
-    hover:border-rose-800 hover:bg-rose-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-noir
+@utility btn-outline {
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-rose-500 bg-transparent px-7 py-3 text-[0.95rem] font-medium text-rose-700 transition
+    hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600
     disabled:cursor-not-allowed disabled:opacity-50;
 }
 @utility btn-light {
-  @apply inline-flex items-center justify-center gap-2 border border-rose-200 bg-transparent px-7 py-3.5 text-[0.7rem] font-medium tracking-[0.28em] text-rose-100 uppercase transition
-    hover:bg-rose-100 hover:text-noir focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-200;
+  @apply inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-white bg-white px-7 py-3 text-[0.95rem] font-medium text-rose-700 transition
+    hover:bg-blush-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white;
 }
 
 @utility card {
@@ -122,8 +129,8 @@
 }
 @utility input {
   @apply block w-full rounded-lg border border-rose-200 bg-white px-3.5 py-2.5 text-base text-ink sm:text-sm
-    placeholder:text-stone-400 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 focus:outline-none
-    aria-invalid:border-red-400;
+    placeholder:text-stone-500 focus:border-rose-500 focus:ring-2 focus:ring-rose-200 focus:outline-none
+    aria-invalid:border-red-500;
 }
 @utility label {
   @apply mb-1 block text-sm font-medium text-stone-700;
@@ -132,78 +139,37 @@
   @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
 }
 
-/* ---- Editorial type ---- */
+/* ---- Type ---- */
 @utility tracked-caps {
-  @apply font-sans font-medium tracking-[0.28em] uppercase;
+  @apply font-sans font-medium tracking-[0.18em] uppercase;
 }
-/* Rose-gold foil text, like the logo */
-@utility text-foil {
-  background: linear-gradient(115deg, #e9b9b0 0%, #b8706b 30%, #f6dcd5 48%, #c98a83 62%, #8f4f4d 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-@utility bg-foil {
-  background: linear-gradient(115deg, #f3cfc8 0%, #d99a95 32%, #f6dcd5 52%, #b8706b 78%, #9e5a57 100%);
-}
-/* Soft glow ("lumi" = light) */
-@utility glow-blush {
-  background: radial-gradient(closest-side, rgb(255 255 255 / 0.9), rgb(254 228 232 / 0.6) 45%, transparent 75%);
-}
-@utility sparkle-dots {
-  background-image: radial-gradient(rgb(184 112 107 / 0.18) 1px, transparent 1.4px);
-  background-size: 18px 18px;
+/* Product photo frame: contained, never cropped */
+@utility photo-frame {
+  @apply overflow-hidden rounded-2xl bg-white ring-1 ring-rose-100;
 }
 
-@keyframes kl-float {
-  0%, 100% { transform: translate3d(0, 0, 0) rotate(-3deg); }
-  50% { transform: translate3d(0, -12px, 0) rotate(-1deg); }
-}
-@keyframes kl-twinkle {
-  0%, 100% { opacity: 0.25; transform: scale(0.8); }
-  50% { opacity: 1; transform: scale(1); }
-}
-@keyframes kl-adapt {
-  0%, 15% { background-color: #fbe3e6; box-shadow: inset 0 0 0 1px rgb(184 112 107 / 0.15); }
-  50% { background-color: #f3a9b5; }
-  85%, 100% { background-color: #d9667e; }
-}
 @keyframes kl-drawer-in {
   from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@keyframes kl-drawer-in-left {
+  from { transform: translateX(-100%); }
   to { transform: translateX(0); }
 }
 @keyframes kl-fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@utility animate-float {
-  animation: kl-float 7s ease-in-out infinite;
-}
-@utility animate-twinkle {
-  animation: kl-twinkle 3.2s ease-in-out infinite;
-}
-@utility animate-adapt {
-  animation: kl-adapt 5s ease-in-out infinite alternate;
-}
 @utility animate-drawer {
   animation: kl-drawer-in 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@utility animate-drawer-left {
+  animation: kl-drawer-in-left 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 @utility animate-fade {
   animation: kl-fade-in 0.2s ease-out;
 }
 
-/* Faint "graph paper" lines behind the desktop hero */
-@utility bg-grid {
-  background-image:
-    linear-gradient(to right, rgb(184 112 107 / 0.09) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(184 112 107 / 0.09) 1px, transparent 1px);
-  background-size: 120px 120px;
-  background-position: -1px -1px;
-}
-/* Highlighter-pen block behind a headline word */
-@utility marker {
-  background: linear-gradient(100deg, rgb(249 208 214 / 0) 0%, #f9d0d6 14%, #f3cfc8 60%, #f6dcd5 100%);
-}
 @utility no-scrollbar {
   scrollbar-width: none;
   &::-webkit-scrollbar {

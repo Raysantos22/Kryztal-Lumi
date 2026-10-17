@@ -1,10 +1,12 @@
-// One-step cash-on-delivery order form (landing-page style): pick the
-// quantity, fill in name, mobile, email and address, place the order. No bag,
-// no account. The order goes through the same create_order() as checkout,
-// which re-prices everything and takes stock in the database.
-import { useMemo, useState } from 'react'
+// One-step cash-on-delivery order form (product page): quantity, name,
+// mobile, email and address, place the order. No bag, no account. The order
+// goes through the same create_order() as checkout, which re-prices
+// everything and takes stock in the database.
+// Quantity and variant can be controlled by the page (qty/onQtyChange,
+// variantId/onVariantChange) so they stay in sync with the buy box.
+import { useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Banknote, Heart, Mail, Truck } from 'lucide-react'
+import { Banknote, Check, Mail, Truck } from 'lucide-react'
 import { api } from '../lib/api/index.js'
 import { useAsync } from '../lib/useAsync.js'
 import { useStore } from '../lib/StoreContext.jsx'
@@ -23,9 +25,9 @@ export function PriceBlock({ price, compareAt, className = '' }) {
   const save = compareAt && Number(compareAt) > Number(price) ? Math.round((1 - Number(price) / Number(compareAt)) * 100) : 0
   return (
     <div className={`flex flex-wrap items-center gap-3 ${className}`}>
-      {save > 0 && <s className="text-2xl text-stone-400 tabular-nums">{formatMoney(compareAt)}</s>}
-      <span className="font-sans text-4xl font-bold text-rose-600 tabular-nums">{formatMoney(price)}</span>
-      {save > 0 && <span className="rounded-full bg-rose-500 px-4 py-1.5 text-sm font-semibold text-white">SAVE {save}%</span>}
+      {save > 0 && <s className="text-xl text-stone-500 tabular-nums">{formatMoney(compareAt)}</s>}
+      <span className="font-sans text-3xl font-semibold text-rose-700 tabular-nums">{formatMoney(price)}</span>
+      {save > 0 && <span className="rounded-full bg-rose-500 px-3 py-1 text-sm font-semibold text-white">Save {save}%</span>}
     </div>
   )
 }
@@ -35,7 +37,7 @@ export function BenefitList({ items, className = '' }) {
     <ul className={`flex flex-wrap gap-x-5 gap-y-2 text-[0.95rem] text-noir ${className}`}>
       {items.map((b) => (
         <li key={b} className="flex items-center gap-1.5">
-          <Heart className="h-4 w-4 fill-rose-400 text-rose-400" aria-hidden="true" /> {b}
+          <Check className="h-4 w-4 text-rose-600" aria-hidden="true" /> {b}
         </li>
       ))}
     </ul>
@@ -55,14 +57,19 @@ function validate(f) {
   return e
 }
 
-export default function OrderForm({ product, id = 'order-form', idPrefix = 'of' }) {
+export default function OrderForm({ product, id = 'order-form', idPrefix = 'of', qty: qtyProp, onQtyChange, variantId: variantProp, onVariantChange }) {
   const { settings, reload: reloadStore } = useStore()
   const navigate = useNavigate()
   const zones = useAsync(() => api.listShippingZones(), [])
   const variants = activeVariants(product)
-  const [variantId, setVariantId] = useState(() => (variants.find((v) => !product.track_stock || v.stock > 0) || variants[0])?.id || null)
+  const [ownVariantId, setOwnVariantId] = useState(() => (variants.find((v) => !product.track_stock || v.stock > 0) || variants[0])?.id || null)
+  const variantId = variantProp !== undefined ? variantProp : ownVariantId
+  const setVariantId = onVariantChange || setOwnVariantId
   const variant = variants.find((v) => v.id === variantId) || null
-  const [qty, setQty] = useState(1)
+  const [ownQty, setOwnQty] = useState(1)
+  const qty = qtyProp ?? ownQty
+  const setQty = onQtyChange || setOwnQty
+  const submitting = useRef(false)
   const [f, setF] = useState(EMPTY)
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
@@ -90,13 +97,14 @@ export default function OrderForm({ product, id = 'order-form', idPrefix = 'of' 
   const fid = (k) => `${idPrefix}-${k}`
   const field = (k, label, props = {}) => (
     <div className={props.wrapClass}>
-      <label htmlFor={fid(k)} className="sr-only">
+      <label htmlFor={fid(k)} className="label">
         {label}
+        {props.optional && <span className="font-normal text-muted"> (optional)</span>}
       </label>
       <input
         id={fid(k)}
-        className="input h-14 border-2 border-rose-300 text-base! focus:border-rose-500"
-        placeholder={props.placeholder || label}
+        className="input h-12 text-base!"
+        placeholder={props.placeholder}
         value={f[k]}
         onChange={set(k)}
         aria-invalid={errors[k] ? 'true' : undefined}
@@ -113,6 +121,7 @@ export default function OrderForm({ product, id = 'order-form', idPrefix = 'of' 
 
   const submit = async (e) => {
     e.preventDefault()
+    if (submitting.current) return // a second click before the first finished
     setError(null)
     const v = validate(f)
     setErrors(v)
@@ -122,6 +131,7 @@ export default function OrderForm({ product, id = 'order-form', idPrefix = 'of' 
     }
     if (minOrder > 0 && subtotal < minOrder) return setError(`The minimum order is ${formatMoney(minOrder)}.`)
     // TODO(captcha): add Cloudflare Turnstile here (see TODO_FOR_CLIENT.md).
+    submitting.current = true
     setBusy(true)
     try {
       const order = await api.createOrder({
@@ -147,6 +157,7 @@ export default function OrderForm({ product, id = 'order-form', idPrefix = 'of' 
       setError(err)
       if (err.hint === 'out_of_stock' || err.hint === 'invalid_items') reloadStore()
     } finally {
+      submitting.current = false
       setBusy(false)
     }
   }
@@ -166,7 +177,7 @@ export default function OrderForm({ product, id = 'order-form', idPrefix = 'of' 
           <label htmlFor={fid('variant')} className="label">
             {product.variant_label}
           </label>
-          <select id={fid('variant')} className="input h-14 border-2 border-rose-300" value={variantId || ''} onChange={(e) => { setVariantId(e.target.value); setQty(1) }}>
+          <select id={fid('variant')} className="input h-12" value={variantId || ''} onChange={(e) => { setVariantId(e.target.value); setQty(1) }}>
             {variants.map((v) => (
               <option key={v.id} value={v.id} disabled={product.track_stock && v.stock <= 0}>
                 {v.name} — {formatMoney(v.price)}
@@ -177,35 +188,36 @@ export default function OrderForm({ product, id = 'order-form', idPrefix = 'of' 
         </div>
       )}
 
-      <div className="flex items-center justify-between gap-3 rounded-lg bg-blush-50 px-4 py-3">
-        <span className="text-sm text-noir">Quantity</span>
+      <div className="flex items-center justify-between gap-3 rounded-lg bg-blush-50 px-4 py-2.5">
+        <span className="text-sm font-medium text-noir">Quantity</span>
         <QuantityInput value={qty} onChange={setQty} max={maxQty} label="Quantity" size="sm" />
       </div>
 
       {field('name', 'Full Name', { input: { autoComplete: 'name', maxLength: 100 } })}
-      {field('phone', 'Phone Number', { placeholder: 'Phone Number (e.g. 0917 123 4567)', input: { type: 'tel', inputMode: 'tel', autoComplete: 'tel', maxLength: 30 } })}
+      {field('phone', 'Phone Number', { placeholder: 'e.g. 0917 123 4567', input: { type: 'tel', inputMode: 'tel', autoComplete: 'tel', maxLength: 30 } })}
       <div>
-        {field('email', 'Email', { placeholder: 'Email (we’ll send your order confirmation here)', input: { type: 'email', autoComplete: 'email', maxLength: 254 } })}
+        {field('email', 'Email', { optional: true, placeholder: 'you@gmail.com', input: { type: 'email', autoComplete: 'email', maxLength: 254 } })}
         <p className="mt-1 flex items-center gap-1.5 text-xs text-muted">
-          <Mail className="h-3.5 w-3.5" aria-hidden="true" /> Optional — add your Gmail or any email to get your order details automatically.
+          <Mail className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> We’ll email your order details here.
         </p>
       </div>
-      {field('address_line', 'Address (House Number, Street, Village)', { input: { autoComplete: 'address-line1', maxLength: 200 } })}
+      {field('address_line', 'Address (House Number, Street, Village)', { placeholder: 'e.g. 12 Sampaguita St., Villa Rosa', input: { autoComplete: 'address-line1', maxLength: 200 } })}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div>
-          <label htmlFor={fid('province')} className="sr-only">
+          <label htmlFor={fid('province')} className="label">
             Province
           </label>
           <select
             id={fid('province')}
-            className={`input h-14 border-2 border-rose-300 ${f.province ? 'text-noir' : 'text-stone-400'}`}
+            className={`input h-12 ${f.province ? 'text-noir' : 'text-stone-500'}`}
             value={f.province}
             onChange={set('province')}
             aria-invalid={errors.province ? 'true' : undefined}
+            aria-describedby={errors.province ? `${fid('province')}-error` : undefined}
             autoComplete="address-level1"
           >
-            <option value="">Province</option>
+            <option value="">Choose…</option>
             {PH_PROVINCES.map((p) => (
               <option key={p} value={p}>
                 {p}
@@ -213,13 +225,17 @@ export default function OrderForm({ product, id = 'order-form', idPrefix = 'of' 
             ))}
             <option value={OTHER}>Other / not listed</option>
           </select>
-          {errors.province && <p className="mt-1 text-xs text-red-600">{errors.province}</p>}
+          {errors.province && (
+            <p id={`${fid('province')}-error`} className="mt-1 text-xs text-red-600">
+              {errors.province}
+            </p>
+          )}
         </div>
-        {field('city', 'City / Municipality', { placeholder: 'City', input: { autoComplete: 'address-level2', maxLength: 100 } })}
+        {field('city', 'City / Municipality', { input: { autoComplete: 'address-level2', maxLength: 100 } })}
         {field('barangay', 'Barangay', { input: { maxLength: 100 } })}
       </div>
       {f.province === OTHER && field('province_other', 'Province name', { input: { maxLength: 100 } })}
-      {field('landmark', 'Landmark', { placeholder: 'Landmark (optional)', input: { maxLength: 200 } })}
+      {field('landmark', 'Landmark', { optional: true, placeholder: 'e.g. near the barangay hall', input: { maxLength: 200 } })}
 
       <div className="space-y-1.5 rounded-lg bg-white p-4 text-sm ring-1 ring-rose-100" data-testid="order-form-summary">
         <div className="flex justify-between">
@@ -247,7 +263,7 @@ export default function OrderForm({ product, id = 'order-form', idPrefix = 'of' 
       <button
         type="submit"
         disabled={busy || soldOut}
-        className="flex h-16 w-full items-center justify-center gap-2 rounded-lg bg-rose-600 text-lg font-semibold text-white shadow-lg shadow-rose-900/20 transition hover:bg-rose-700 disabled:opacity-60"
+        className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-rose-500 text-lg font-semibold text-white shadow-sm shadow-rose-900/10 transition hover:bg-rose-600 disabled:opacity-60"
       >
         {busy && <Spinner className="h-5 w-5 text-white" />}
         {soldOut ? 'Sold out' : busy ? 'Placing order…' : `Place order · ${formatMoney(total)}`}
@@ -259,7 +275,7 @@ export default function OrderForm({ product, id = 'order-form', idPrefix = 'of' 
           </li>
         )}
         <li className="flex items-center gap-1.5">
-          <Truck className="h-3.5 w-3.5" aria-hidden="true" /> Fast nationwide shipping
+          <Truck className="h-3.5 w-3.5" aria-hidden="true" /> Nationwide shipping
         </li>
       </ul>
     </form>

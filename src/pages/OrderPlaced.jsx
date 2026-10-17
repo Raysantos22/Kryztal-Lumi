@@ -37,10 +37,9 @@ export default function OrderPlaced() {
 
   return (
     <div className="bg-pearl pb-20">
-      <div className="relative overflow-hidden bg-blush-100">
-        <div className="sparkle-dots absolute inset-0 opacity-60" aria-hidden="true" />
-        <div className="container-page relative py-12 text-center">
-          <Sparkle className="mx-auto h-10 w-10" gradient />
+      <div className="border-b border-rose-100 bg-blush-100">
+        <div className="container-page py-12 text-center">
+          <Sparkle className="mx-auto h-10 w-10 text-rose-500" />
           <h1 className="mt-4 font-display text-4xl text-noir sm:text-5xl">Thank you, {order.customer.name.split(' ')[0]}!</h1>
           <p className="mx-auto mt-3 max-w-lg text-muted">
             {gcash
@@ -58,7 +57,7 @@ export default function OrderPlaced() {
           <Link to="/shop" className="btn-outline">
             Continue shopping
           </Link>
-          <Link to={`/track?order=${encodeURIComponent(order.order_no)}`} className="btn-outline">
+          <Link to={`/track?order=${encodeURIComponent(order.order_no)}`} className="btn-solid">
             Track order
           </Link>
         </div>

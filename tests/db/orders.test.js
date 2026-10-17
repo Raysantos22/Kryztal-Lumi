@@ -58,8 +58,9 @@ describe('seed', () => {
     expect(p.name).toBe('Crystal Blush')
     expect(Number(p.price)).toBe(399)
     expect(p.stock).toBe(50)
-    expect(p.ingredients).toContain('D&C Red No.22 (CI 45380)')
-    expect((await q('select * from product_images where product_id = $1', [PRODUCT_ID])).length).toBe(4)
+    expect(p.subtitle).toBe('Color-changing blush')
+    expect(p.ingredients).toBeNull() // to be confirmed for the current formula
+    expect((await q('select * from product_images where product_id = $1', [PRODUCT_ID])).length).toBe(7)
     const zones = await q('select name, fee::int, delivery_time from shipping_zones order by sort_order')
     expect(zones).toEqual([
       { name: 'Metro Manila', fee: 100, delivery_time: '2–3 days' },
@@ -88,6 +89,28 @@ describe('seed', () => {
     expect(new Set(listed).size).toBe(listed.length)
   })
 
+  it('the manual Crystal Blush refresh swaps the old placeholder images, keeps uploads and stock, and can be re-run', async () => {
+    const { readFileSync } = await import('node:fs')
+    const refresh = readFileSync(new URL('../../supabase/manual/crystal-blush-refresh.sql', import.meta.url), 'utf8')
+    const fresh = await createDb()
+    // The live database still has the four images from the first seed, plus maybe an owner upload.
+    await fresh.query('delete from product_images where product_id = $1', [PRODUCT_ID])
+    for (const [i, url] of ['/images/product-box.webp', '/images/product-pan.webp', '/images/product-mockup.webp', '/images/product-back.webp', 'https://x.supabase.co/storage/v1/object/public/media/products/own.webp'].entries()) {
+      await fresh.query('insert into product_images (product_id, url, alt, sort_order) values ($1, $2, $3, $4)', [PRODUCT_ID, url, 'old', i + 1])
+    }
+    await fresh.query("update products set ingredients = 'old list', specs = '[{\"label\":\"Net wt\",\"value\":\"1.8 g\"}]' where id = $1", [PRODUCT_ID])
+    for (let run = 0; run < 2; run++) {
+      await fresh.exec(refresh)
+      const urls = (await fresh.query('select url from product_images where product_id = $1 order by sort_order, url', [PRODUCT_ID])).rows.map((r) => r.url)
+      expect(urls.filter((u) => u.startsWith('/images/cb/'))).toHaveLength(7)
+      expect(urls).toContain('https://x.supabase.co/storage/v1/object/public/media/products/own.webp')
+      expect(urls.some((u) => /product-(box|pan|mockup|back)\.webp$/.test(u))).toBe(false)
+    }
+    const p = (await fresh.query('select subtitle, ingredients, specs, stock, price from products where id = $1', [PRODUCT_ID])).rows[0]
+    expect(p).toMatchObject({ subtitle: 'Color-changing blush', ingredients: null, specs: [], stock: 50 })
+    expect(Number(p.price)).toBe(399)
+  })
+
   it('is safe to re-run and does not reset stock', async () => {
     await order({ items: [{ product_id: PRODUCT_ID, quantity: 2 }] })
     const { readFileSync } = await import('node:fs')
@@ -107,7 +130,7 @@ describe('create_order', () => {
     expect(o.total).toBe(898)
     expect(o.shipping).toMatchObject({ zone_name: 'Metro Manila', eta: '2–3 days', barangay: 'San Antonio', zip: '1600' })
     expect(o.items).toEqual([
-      expect.objectContaining({ product_name: 'Crystal Blush', product_slug: 'crystal-blush', unit_price: 399, quantity: 2, line_total: 798, image_url: '/images/product-box.webp' }),
+      expect.objectContaining({ product_name: 'Crystal Blush', product_slug: 'crystal-blush', unit_price: 399, quantity: 2, line_total: 798, image_url: '/images/cb/compact-top-1254.webp' }),
     ])
     expect(o.timeline).toHaveLength(1)
     expect(o.timeline[0].status).toBe('new')

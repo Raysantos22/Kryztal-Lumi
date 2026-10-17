@@ -66,7 +66,7 @@ export async function checkout(page, { payment = 'cod', reference = '', ...overr
   return (await page.getByTestId('placed-order-no').textContent()).trim()
 }
 
-// Home → Order now (jumps to the order form) → order placed. With
+// Product page → Order now (opens the order form) → order placed. With
 // { payment: 'gcash' } it goes through the bag + checkout instead.
 export async function orderNow(page, opts = {}) {
   if (opts.payment === 'gcash') {
@@ -74,10 +74,17 @@ export async function orderNow(page, opts = {}) {
     await toCheckoutViaBag(page)
     return checkout(page, opts)
   }
-  await page.goto('/')
-  await waitForApp(page)
-  await page.getByRole('button', { name: /^Order now/ }).first().click()
+  await openOrderForm(page)
   return quickOrder(page, opts)
+}
+
+// Product page with the one-step order form open.
+export async function openOrderForm(page, slug = 'crystal-blush') {
+  await page.goto(`/product/${slug}`)
+  await waitForApp(page)
+  await visible(page.getByRole('button', { name: 'Order now' })).click()
+  await expect(page.getByTestId('order-form')).toBeVisible()
+  return page.getByTestId('order-form')
 }
 
 export async function adminLogin(page, path = '/admin') {
@@ -103,11 +110,14 @@ export function api(page, fn, arg) {
   )
 }
 
-// Fill the one-step order form (home or product page) and place the order.
-// Returns the order number, or null with { expectError } when the order is refused.
+// Fill the one-step order form (product page) and place the order. Opens
+// the form with "Order now" if it isn't open yet. Returns the order number,
+// or null with { expectError } when the order is refused.
 export async function quickOrder(page, { quantity = 1, expectError = null, ...overrides } = {}) {
   const c = { ...CUSTOMER, ...overrides }
   const form = page.getByTestId('order-form')
+  await expect(visible(page.getByRole('button', { name: 'Order now' })).or(form).first()).toBeVisible()
+  if (!(await form.isVisible())) await visible(page.getByRole('button', { name: 'Order now' })).click()
   await expect(form).toBeVisible()
   for (let i = 1; i < quantity; i++) await form.getByRole('button', { name: 'Increase quantity' }).click()
   await form.getByLabel('Full Name').fill(c.name)

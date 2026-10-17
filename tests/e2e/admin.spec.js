@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { PNG, PRODUCT_ID, adminLogin, api, expectNoHorizontalScroll, orderNow, quickOrder, visible, waitForApp, watchErrors } from './helpers.js'
+import { PNG, PRODUCT_ID, adminLogin, api, expectNoHorizontalScroll, openOrderForm, orderNow, quickOrder, visible, waitForApp, watchErrors } from './helpers.js'
 
 const orderRow = (page, orderNo) => page.locator(`[data-testid=admin-order-row][data-order-no="${orderNo}"]`).first()
 
@@ -171,8 +171,7 @@ test('shipping zones, free shipping and settings drive the shop', async ({ page 
   await expect(visible(page.getByRole('link', { name: 'Instagram' }))).toHaveAttribute('href', 'https://instagram.com/kryztallumi')
 
   // Pampanga (Luzon) at the new fee; 2 items reach free shipping
-  await page.getByRole('button', { name: /^Order now/ }).first().click()
-  const form = page.getByTestId('order-form')
+  const form = await openOrderForm(page)
   await form.getByLabel('Province').selectOption('Pampanga')
   await expect(page.getByTestId('order-form-shipping')).toHaveText('₱130')
   await form.getByRole('button', { name: 'Increase quantity' }).click()
@@ -218,8 +217,8 @@ test('owner publishes a review and a photo look; they lead the community slidesh
   const errors = watchErrors(page)
   await page.goto('/')
   await waitForApp(page)
-  await expect(page.getByTestId('community-perk').first()).toBeAttached()
-  await expect(page.getByTestId('community-card')).toHaveCount(0)
+  // No posts yet: no community section at all (no filler cards)
+  await expect(page.getByRole('heading', { name: 'From the community' })).toHaveCount(0)
 
   await adminLogin(page, '/admin/community')
   await page.getByRole('button', { name: 'Add review or look' }).click()
@@ -239,9 +238,8 @@ test('owner publishes a review and a photo look; they lead the community slidesh
 
   await page.goto('/')
   await waitForApp(page)
+  await expect(page.getByRole('heading', { name: 'From the community' })).toBeVisible()
   await expect(page.getByTestId('community-card')).toHaveCount(2)
-  // Real posts come first, ahead of the brand cards
-  await expect(page.getByTestId('community-track').locator('article').first()).toHaveAttribute('data-testid', 'community-card')
   await expect(page.getByTestId('community-track')).toContainText('so natural on me')
   await expect(page.getByTestId('community-track')).toContainText('@glowwithana')
   expect(errors).toEqual([])

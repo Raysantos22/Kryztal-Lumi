@@ -15,13 +15,13 @@ insert into public.store_settings (
 ) values (
   1,
   'Kryztal Lumi',
-  'Blush that becomes you.',                                                      -- PLACEHOLDER tagline (options in TODO)
+  'A little color. A little Lumi.',                                               -- PLACEHOLDER tagline (options in TODO)
   'Kryztal Lumi is a small Filipino beauty label built around one idea: makeup should catch the light the way crystal does — and look like you, only glowing. We start with a single product we love, the Crystal Blush, and add new pieces slowly and carefully.', -- PLACEHOLDER
   null,                                                                           -- PLACEHOLDER contact email
   null, null, null,                                                               -- PLACEHOLDER phone / Viber / WhatsApp
   null, null, null, null,                                                         -- socials: hidden while empty
   true,
-  'Fast nationwide shipping · Cash on delivery',
+  'Nationwide shipping · Cash on delivery',
   'PHP',
   'Asia/Manila',
   true,
@@ -39,10 +39,9 @@ insert into public.store_settings (
   'We ship nationwide from the Philippines with trusted couriers such as J&T Express and LBC. Orders are packed within 1–2 working days after confirmation. Delivery times depend on your area (see the table below). Once your order ships you''ll get the courier and tracking number on the Track Order page.', -- PLACEHOLDER
   'Exchange within 7 days of delivery for damaged or wrong items. Please message us with your order number and a photo or unboxing video. For hygiene reasons we can''t accept returns of opened or used makeup.', -- PLACEHOLDER (accepted default)
   '[
-    {"q": "How does a tone-adapt blush change colour?", "a": "Crystal Blush uses a colour-changing pigment that develops on contact with your skin. It looks deep and dark in the compact, then blooms into a soft, rosy flush that is personal to you. Build it up with light taps until you love the shade."},
-    {"q": "Will it suit my skin tone?", "a": "That''s the idea. Because the colour develops on your skin, it adapts to your own undertone. Start with a little and build up, from a barely-there glow to a stronger flush."},
-    {"q": "How do I apply it?", "a": "Tap a finger or a soft brush lightly on the pan, then press and blend onto the apples of your cheeks. Wait a minute or two for the colour to develop before adding more."},
-    {"q": "Is it cruelty-free?", "a": "Yes. Crystal Blush is cruelty-free. Use within 12 months after opening."},
+    {"q": "What is Crystal Blush?", "a": "Crystal Blush is our color-changing blush for the cheeks, in a clear round compact. In the compact it looks pale and pearly with a fine shimmer; on application the color develops into a pink flush."},
+    {"q": "Will it look the same on everyone?", "a": "Shade appearance may vary from person to person. Start with a little, then blend and build up to the look you like."},
+    {"q": "How do I apply it?", "a": "Lightly tap a fingertip or a soft brush on the pan, press onto your cheeks, then blend out and build up gradually."},
     {"q": "How do I pay?", "a": "Cash on Delivery: just fill in the order form and pay the rider in cash when your parcel arrives. No card or online payment needed."},
     {"q": "How long is delivery?", "a": "Metro Manila 2–3 days, Luzon 3–5 days, Visayas and Mindanao 5–7 days after your order ships. You can follow your parcel on the Track Order page."},
     {"q": "Can I return or exchange?", "a": "We exchange damaged or wrong items within 7 days of delivery. Message us with your order number and a photo or unboxing video."}
@@ -73,18 +72,12 @@ insert into public.products (
   'c0000000-0000-4000-8000-000000000001',
   'crystal-blush',
   'Crystal Blush',
-  'Tone-adapt colour-changing blush',
-  'A deep crystal in the compact, your own rosy flush on the cheek. Crystal Blush develops on contact with your skin and adapts to your undertone, so every wearer gets a shade that looks naturally theirs. Silky, buildable and long-wearing, in a slim black compact finished in rose-gold foil.',
-  E'1. Tap a fingertip or soft brush lightly on the pan.\n2. Press onto the apples of your cheeks and blend upwards.\n3. Wait 1–2 minutes while the colour develops, then build up if you want more.\n\nTip: a little goes a long way. Start sheer.',
-  'Caprylic/Capric Triglyceride, Octyldodecanol, Tridecyl Trimellitate, Diisostearyl Malate, Hydrogenated Polyisobutene, C12-15 Alkyl Benzoate, Microcrystalline Wax, Polyisobutene, Synthetic Wax, Paraffin, Black Iron Oxide (CI 77499), Phenoxyethanol, Isostearic Acid, D&C Red No.22 (CI 45380), Ethylhexylglycerin, Tocopherol.',
-  array['Tone-adapt colour', 'One shade for every skin tone', 'Buildable & long-wearing', 'Cruelty-free', 'Fast delivery', 'Cash on delivery'],
-  '[
-    {"label": "Net wt", "value": "1.8 g / 0.063 oz"},
-    {"label": "Compact", "value": "53 × 53 mm"},
-    {"label": "Shade", "value": "Tone-adapt (one shade for every skin tone)"},
-    {"label": "Cruelty-free", "value": "Yes"},
-    {"label": "After opening", "value": "Use within 12 months"}
-  ]'::jsonb,
+  'Color-changing blush',
+  E'A blush with a color-changing effect on application. In the compact, Crystal Blush is a pale, pearly pan with a fine shimmer, in a clear round compact.\n\nOn your cheeks, the color develops into a pink flush. Discover its shade on your skin and blend it into your desired look. Shade appearance may vary.',
+  E'1. Lightly tap a fingertip or a soft brush on the pan.\n2. Press onto your cheeks.\n3. Blend out and build up gradually to the look you like.',
+  null,                                                                           -- ingredients: to be confirmed for the current formula (TODO)
+  array['Color-changing formula', 'Compact format', 'For cheeks', 'Cash on delivery'],
+  '[]'::jsonb,                                                                    -- specs (net wt, size, shelf life): to be confirmed (TODO)
   399,
   50,
   true,
@@ -99,15 +92,22 @@ on conflict (id) do update set
   details = excluded.details, ingredients = excluded.ingredients, highlights = excluded.highlights, specs = excluded.specs, price = excluded.price,
   max_per_order = excluded.max_per_order, is_featured = excluded.is_featured, badge_new = excluded.badge_new;
 
--- Images: crisp render of the box, illustrated pan, the client's mockup and
--- the back of the box. PLACEHOLDER until real product photos are uploaded.
+-- Images: the supplied Crystal Blush photos, in gallery order (files are
+-- generated by `npm run images`; see src/content/assets.js). The owner can
+-- reorder, replace or add photos in Admin → Products.
 insert into public.product_images (id, product_id, url, alt, sort_order) values
-  ('b1000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', '/images/product-box.webp',
-   'Crystal Blush compact: black box with rose-gold Kryztal Lumi foil logo', 1),
-  ('b1000000-0000-4000-8000-000000000002', 'c0000000-0000-4000-8000-000000000001', '/images/product-pan.webp',
-   'Illustration of the Crystal Blush pan in a rose-gold rim', 2),
-  ('b1000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000001', '/images/product-mockup.webp',
-   'Crystal Blush box, front and back, 53 × 53 mm', 3),
-  ('b1000000-0000-4000-8000-000000000004', 'c0000000-0000-4000-8000-000000000001', '/images/product-back.webp',
-   'Back of the Crystal Blush box with the full ingredient list', 4)
+  ('b2000000-0000-4000-8000-000000000001', 'c0000000-0000-4000-8000-000000000001', '/images/cb/compact-top-1254.webp',
+   'Crystal Blush in its clear round compact, seen from above: a pearly, shimmering pan printed with the dusty-rose kryztal lumi logo and CRYSTAL BLUSH', 1),
+  ('b2000000-0000-4000-8000-000000000002', 'c0000000-0000-4000-8000-000000000001', '/images/cb/compact-angle-1254.webp',
+   'Crystal Blush compact at an angle on a white surface, showing the clear round case and hinge', 2),
+  ('b2000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000001', '/images/cb/pan-closeup-1254.webp',
+   'Close-up of the Crystal Blush pan: pearly white with fine shimmer, under the dusty-rose kryztal lumi logo', 3),
+  ('b2000000-0000-4000-8000-000000000004', 'c0000000-0000-4000-8000-000000000001', '/images/cb/compact-vs-skin-1254.webp',
+   'Side by side: Crystal Blush in the compact (pale and shimmering) and on skin (a pink flush). Shade appearance may vary.', 4),
+  ('b2000000-0000-4000-8000-000000000005', 'c0000000-0000-4000-8000-000000000001', '/images/cb/color-develop-1254.webp',
+   'Illustrative concept, not actual stage photos: three arm swatches labelled Just applied, Color developed and Blended finish', 5),
+  ('b2000000-0000-4000-8000-000000000006', 'c0000000-0000-4000-8000-000000000001', '/images/cb/hero-podium-1122.webp',
+   'Crystal Blush clear round compact standing on an ivory podium against a soft blush-pink backdrop', 6),
+  ('b2000000-0000-4000-8000-000000000007', 'c0000000-0000-4000-8000-000000000001', '/images/cb/feature-graphic-1254.webp',
+   'Meet Crystal Blush graphic: color-changing formula, compact format, for cheeks, with an arm swatch', 7)
 on conflict (id) do nothing;

@@ -49,15 +49,15 @@ export function money(amount: number, currency = 'PHP') {
 
 const PAYMENT: Record<string, string> = { cod: 'Cash on delivery', gcash: 'GCash' }
 
-// Rose-gold on ivory, black header — matches the site and packaging.
+// Dusty rose on ivory with a blush header — matches the site.
 function shell(title: string, body: string, siteUrl?: string) {
-  return `<!doctype html><html><body style="margin:0;background:#fbf6f3;font-family:Arial,Helvetica,sans-serif;color:#2a2123">
+  return `<!doctype html><html><body style="margin:0;background:#fbf5ef;font-family:Arial,Helvetica,sans-serif;color:#3e2e2f">
 <table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center" style="padding:24px 12px">
-<table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border:1px solid #f8e7e4;border-radius:14px" cellspacing="0" cellpadding="0">
-<tr><td style="background:#121012;padding:22px 24px;border-radius:14px 14px 0 0;text-align:center">
-${siteUrl ? `<img src="${esc(siteUrl)}/images/logo-email.png" alt="Kryztal Lumi" width="150" style="display:inline-block;width:150px;height:auto">` : `<span style="color:#e3b0a8;font-family:Georgia,serif;font-size:24px;letter-spacing:3px">KRYZTAL LUMI</span>`}
+<table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border:1px solid #f6e2e0;border-radius:14px" cellspacing="0" cellpadding="0">
+<tr><td style="background:#faece9;padding:22px 24px;border-radius:14px 14px 0 0;text-align:center">
+${siteUrl ? `<img src="${esc(siteUrl)}/images/logo-email.png" alt="Kryztal Lumi" width="150" style="display:inline-block;width:150px;height:auto">` : `<span style="color:#b45a5c;font-family:Georgia,serif;font-size:24px;letter-spacing:1px">kryztal lumi</span>`}
 </td></tr>
-<tr><td style="padding:24px 24px 4px;font-family:Georgia,serif;font-size:24px;color:#121012">${esc(title)}</td></tr>
+<tr><td style="padding:24px 24px 4px;font-family:Georgia,serif;font-size:24px;color:#2e2021">${esc(title)}</td></tr>
 <tr><td style="padding:8px 24px 24px;font-size:15px;line-height:1.55">${body}</td></tr>
 </table></td></tr></table></body></html>`
 }
@@ -82,7 +82,7 @@ function addressText(o: OrderDetails) {
 }
 
 function button(href: string, label: string) {
-  return `<p style="margin:20px 0 4px"><a href="${esc(href)}" style="display:inline-block;background:#121012;color:#fffaf6;text-decoration:none;padding:12px 22px;letter-spacing:2px;font-size:12px;text-transform:uppercase">${esc(label)}</a></p>`
+  return `<p style="margin:20px 0 4px"><a href="${esc(href)}" style="display:inline-block;background:#b45a5c;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:999px;font-size:14px;font-weight:bold">${esc(label)}</a></p>`
 }
 
 const trackUrl = (siteUrl: string | undefined, orderNo: string) =>

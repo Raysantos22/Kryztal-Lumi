@@ -24,7 +24,7 @@ const absolute = (url) => (!url || /^(https?:|data:)/.test(url) ? url : `${SITE_
 export function useSeo({ title, description, image, type = 'website', jsonLd = null, noindex = false }) {
   const ld = jsonLd ? JSON.stringify(jsonLd) : null
   useEffect(() => {
-    const fullTitle = title ? `${title} · Kryztal Lumi` : 'Kryztal Lumi — Crystal Blush, the tone-adapt colour-changing blush'
+    const fullTitle = title ? `${title} · Kryztal Lumi` : 'Kryztal Lumi — Crystal Blush, color-changing blush'
     document.title = fullTitle
     setMeta('name', 'description', description)
     setMeta('property', 'og:title', fullTitle)

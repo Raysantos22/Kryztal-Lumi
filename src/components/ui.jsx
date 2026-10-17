@@ -42,7 +42,7 @@ export function Notice({ children, tone = 'info', className = '' }) {
 
 export function Eyebrow({ children, className = '' }) {
   return (
-    <p className={`flex items-center gap-2 tracked-caps text-[0.68rem] text-rose-700 ${className}`}>
+    <p className={`flex items-center gap-2 tracked-caps text-xs text-rose-600 ${className}`}>
       <Sparkle className="h-3 w-3 text-rose-500" /> {children}
     </p>
   )
@@ -50,11 +50,10 @@ export function Eyebrow({ children, className = '' }) {
 
 export function PageHeader({ eyebrow, title, children }) {
   return (
-    <header className="relative overflow-hidden bg-blush-100">
-      <div className="sparkle-dots absolute inset-0 opacity-60" aria-hidden="true" />
-      <div className="container-page relative py-12 text-center sm:py-16">
+    <header className="border-b border-rose-100 bg-blush-100">
+      <div className="container-page py-12 text-center sm:py-16">
         {eyebrow && <Eyebrow className="justify-center">{eyebrow}</Eyebrow>}
-        <h1 className="mt-3 font-display text-4xl font-medium text-noir sm:text-5xl">{title}</h1>
+        <h1 className="mt-3 font-display text-4xl text-noir sm:text-5xl">{title}</h1>
         {children && <div className="mx-auto mt-3 max-w-2xl text-muted">{children}</div>}
       </div>
     </header>
@@ -151,8 +150,8 @@ export function QuantityInput({ value, onChange, max = 99, min = 1, label = 'Qua
 // Fallback art when a product has no photo yet.
 export function ImagePlaceholder({ className = '' }) {
   return (
-    <div className={`flex items-center justify-center bg-gradient-to-br from-blush-100 to-blush-300 ${className}`}>
-      <Sparkle className="h-1/4 w-1/4 opacity-70" gradient />
+    <div className={`flex items-center justify-center bg-blush-100 ${className}`}>
+      <Sparkle className="h-1/4 w-1/4 text-rose-300" />
     </div>
   )
 }

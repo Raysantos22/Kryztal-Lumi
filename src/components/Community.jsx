@@ -1,7 +1,8 @@
-// Community / reviews slideshow (managed in Admin → Reviews).
+// Community looks and reviews (managed in Admin → Reviews). Only real
+// posts the owner adds are shown; with none, the section is hidden.
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Banknote, ChevronLeft, ChevronRight, Heart, Leaf, Play, Smartphone, Sparkles, Truck } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import { api } from '../lib/api/index.js'
 import { useAsync } from '../lib/useAsync.js'
 import { Sparkle } from './icons.jsx'
@@ -89,47 +90,7 @@ function ReviewCard({ post, product }) {
   )
 }
 
-// Brand cards (reel-style) that keep the slideshow full: why shop with us.
-// Real reviews / looks from Admin → Reviews always come first.
-function perksFor(settings) {
-  return [
-    { key: 'shipping', icon: Truck, title: 'Fast shipping', line: 'Packed within 1–2 days and delivered anywhere in the Philippines.', image: '/images/scene-flatlay-900.webp', pos: '30% 50%' },
-    settings?.cod_enabled && { key: 'cod', icon: Banknote, title: 'Cash on delivery', line: 'Pay the rider when your Crystal Blush arrives. No card needed.', image: '/images/scene-podium-900.webp', pos: '40% 50%' },
-    { key: 'tone', icon: Sparkles, title: 'Tone-adapt colour', line: 'Deep crystal in the compact, your own rosy flush on the cheek.', image: '/images/product-pan.webp', pos: '50% 50%' },
-    settings?.gcash_enabled && { key: 'gcash', icon: Smartphone, title: 'Pay with GCash', line: 'Scan, pay, enter your reference — we confirm it fast.', image: '/images/product-box.webp', pos: '50% 50%' },
-    { key: 'shade', icon: Heart, title: 'One shade, every skin tone', line: 'The colour develops to match your own undertone.', image: '/images/scene-flatlay-900.webp', pos: '75% 50%' },
-    { key: 'cruelty', icon: Leaf, title: 'Cruelty-free', line: 'Never tested on animals. Pocket-sized 53 × 53 mm compact.', image: '/images/scene-podium-900.webp', pos: '62% 50%' },
-  ].filter(Boolean)
-}
-
-function PerkCard({ perk, product }) {
-  const Icon = perk.icon
-  return (
-    <article
-      className="relative h-[400px] w-[230px] shrink-0 snap-start overflow-hidden rounded-xl bg-blush-200 sm:h-[420px] sm:w-[240px]"
-      data-testid="community-perk"
-    >
-      <img src={perk.image} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" style={{ objectPosition: perk.pos }} />
-      <div className="absolute inset-0 bg-gradient-to-t from-noir/80 via-noir/10 to-transparent" aria-hidden="true" />
-      <span className="absolute top-3 left-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-rose-600 shadow" aria-hidden="true">
-        <Icon className="h-5 w-5" />
-      </span>
-      <div className="absolute inset-x-0 bottom-0 px-4 pb-4">
-        <h3 className="font-display text-2xl leading-tight text-white">{perk.title}</h3>
-        <p className="mt-1.5 text-sm leading-snug text-white/85">{perk.line}</p>
-        {product && (
-          <div className="mt-3 flex justify-end">
-            <Link to={`/product/${product.slug}`} className="rounded-full bg-white px-3 py-1.5 text-xs text-noir hover:bg-blush-100">
-              Shop now
-            </Link>
-          </div>
-        )}
-      </div>
-    </article>
-  )
-}
-
-export function CommunitySlideshow({ product, settings }) {
+export function CommunitySlideshow({ product }) {
   const posts = useAsync(() => api.listCommunity(), [])
   const track = useRef(null)
   const [paused, setPaused] = useState(false)
@@ -151,17 +112,16 @@ export function CommunitySlideshow({ product, settings }) {
     return () => clearInterval(t)
   }, [paused])
 
-  const perks = perksFor(settings)
+  if (!list.length) return null
+  const many = list.length > 1
 
   return (
     <section className="py-16 sm:py-20" aria-labelledby="community-title">
       <div className="container-page text-center">
         <h2 id="community-title" className="font-display text-4xl text-noir sm:text-5xl">
-          Glow notes
+          From the community
         </h2>
-        <p className="mt-2 text-sm text-muted italic">
-          {list.length ? 'Real looks and reviews from the Kryztal Lumi community.' : `Fast shipping${settings?.cod_enabled ? ' · Cash on delivery' : ''} · Nationwide`}
-        </p>
+        <p className="mt-2 text-sm text-muted">Looks and reviews shared with Kryztal Lumi.</p>
       </div>
       <div
         className="relative mt-8"
@@ -179,19 +139,18 @@ export function CommunitySlideshow({ product, settings }) {
           data-testid="community-track"
         >
           {list.map((p) => (p.kind === 'look' ? <LookCard key={p.id} post={p} product={product} /> : <ReviewCard key={p.id} post={p} product={product} />))}
-          {perks.map((perk) => (
-            <PerkCard key={perk.key} perk={perk} product={product} />
-          ))}
         </div>
       </div>
-      <div className="mt-6 flex justify-center gap-3">
-        <button type="button" onClick={() => scroll(-1)} className="flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-white text-noir transition hover:border-noir" aria-label="Previous">
-          <ChevronLeft className="h-5 w-5" />
-        </button>
-        <button type="button" onClick={() => scroll(1)} className="flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-white text-noir transition hover:border-noir" aria-label="Next">
-          <ChevronRight className="h-5 w-5" />
-        </button>
-      </div>
+      {many && (
+        <div className="mt-6 flex justify-center gap-3">
+          <button type="button" onClick={() => scroll(-1)} className="flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-white text-noir transition hover:border-rose-500" aria-label="Previous">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button type="button" onClick={() => scroll(1)} className="flex h-11 w-11 items-center justify-center rounded-full border border-rose-200 bg-white text-noir transition hover:border-rose-500" aria-label="Next">
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+      )}
     </section>
   )
 }
